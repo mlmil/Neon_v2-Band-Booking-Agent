@@ -296,3 +296,4 @@ All code changes should be committed and pushed to keep machines in sync.
 - Cron/automation: OAuth may fail silently — always fall back to inline OAuth if monitor returns 0 events
 - Calendar API: always request `creator` field; it determines confirmation authority
 - Multi-day events: check end-date boundary carefully — Band Sheet systematically truncates by 1 day
+
