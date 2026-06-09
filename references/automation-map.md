@@ -65,7 +65,7 @@ These scripts should do predictable work and return structured output.
 | `scripts/create_venue_package.sh` | Existing venue package/flyer asset helper | Booking Phase / Promo |
 | `scripts/find_rehearsal_dates.py` | Find candidate rehearsal dates | Booking Ops |
 | `scripts/check-freshground-calendar.py` | Check Freshground calendar availability | Booking Ops |
-| `scripts/monitor_inbox.py` | Existing inbox monitor script | Intake / Email |
+| `scripts/monitor_inbox.py` | Flag booking-related inbox messages and, with `--write-intake-receipts`, create local Intake receipts without sending replies | Intake / Email |
 | `scripts/neon_monitor.py` | Stub pointing to canonical Hermes monitor | Briefing / Monitoring |
 
 ## Workflow Phases
@@ -84,6 +84,7 @@ Current working pieces:
 - Venue Agent dry-run planner.
 - Intake Phase email parser.
 - Intake Phase local receipt writer.
+- Inbox monitor can create Intake receipts in supervised mode with `--write-intake-receipts`.
 - Scout lead CSV validator.
 - Public Band Sheet vs public Google Calendar verification checker.
 - Public website vs Band Sheet verification checker.
@@ -94,7 +95,7 @@ Current partial/broken pieces:
 
 - Local OAuth token at `~/.hermes/neon_oauth_token.json` has previously failed with `invalid_grant`; use connector/public read path or reauth before relying on local OAuth.
 - Dashboard is specified but not implemented.
-- Intake parser and local receipt writer are implemented, but the live inbox monitor is not wired to create receipts automatically yet.
+- Intake parser, local receipt writer, and inbox monitor receipt mode are implemented; scheduled unattended inbox automation is not installed yet.
 - Post-Gig payout spreadsheet updater is specified but not implemented.
 - WordPress API auth has been proven with Application Passwords when a normal User-Agent is supplied. The target for public website cards is `wp/v2/show`, not the full Band Sheet and not the Events Calendar endpoint.
 
@@ -104,7 +105,7 @@ Supervised deployment is allowed now.
 
 Before unattended production automation:
 
-- Wire `scripts/monitor_inbox.py` to create Intake receipts from flagged booking emails.
+- Install a scheduled supervised monitor run once Mike approves cadence and receipt folder location.
 - Keep unknown-contact acknowledgments draft-only until Mike approves the sender policy.
 - Reauth or replace the local OAuth calendar token before relying on local Calendar API automation.
 - Build the dashboard approval queue before enabling routine write actions.

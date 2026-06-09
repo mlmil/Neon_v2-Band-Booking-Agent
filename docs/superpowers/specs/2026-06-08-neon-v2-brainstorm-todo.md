@@ -160,13 +160,14 @@ Rules:
 
 ## Next Session
 
-1. Wire `scripts/monitor_inbox.py` to create Intake receipts from flagged booking emails.
-2. Keep first deployment in supervised mode: local receipts and drafts are allowed; calendar, Band Sheet, WordPress, payment, portal, and venue-facing email sends still need approval.
-3. Build the dashboard approval queue around Intake receipts, mismatch reports, venue-agent receipts, and post-gig payment items.
-4. Implement Post-Gig payout entry form and spreadsheet updater.
-5. Reauth or replace the local OAuth calendar token before relying on unattended Calendar API automation.
-6. Booking Pipeline folder decision: wait until the first qualified Scout leads exist.
-7. Later: convert the approved design into a production automation plan.
+1. Run a supervised inbox receipt test with `scripts/monitor_inbox.py --write-intake-receipts`.
+2. Decide the production receipt folder and monitor cadence.
+3. Keep first deployment in supervised mode: local receipts and drafts are allowed; calendar, Band Sheet, WordPress, payment, portal, and venue-facing email sends still need approval.
+4. Build the dashboard approval queue around Intake receipts, mismatch reports, venue-agent receipts, and post-gig payment items.
+5. Implement Post-Gig payout entry form and spreadsheet updater.
+6. Reauth or replace the local OAuth calendar token before relying on unattended Calendar API automation.
+7. Booking Pipeline folder decision: wait until the first qualified Scout leads exist.
+8. Later: convert the approved design into a production automation plan.
 
 ## Deployment Status
 
@@ -181,6 +182,7 @@ Working supervised pieces:
 
 - Intake email parser.
 - Intake local receipt writer.
+- Inbox monitor receipt mode with `--write-intake-receipts`.
 - Venue Agent dry-run planner.
 - Scout CSV validator.
 - Band Sheet vs public Google Calendar verification checker.
@@ -189,7 +191,7 @@ Working supervised pieces:
 
 Remaining production blockers:
 
-- Live inbox monitor does not create Intake receipts yet.
+- Scheduled inbox monitor is not installed yet.
 - Dashboard is not implemented.
 - Post-Gig payout tracker is not implemented.
 - Local OAuth calendar token has known `invalid_grant` history.
