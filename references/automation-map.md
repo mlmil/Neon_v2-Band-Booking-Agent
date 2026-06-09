@@ -58,6 +58,7 @@ These scripts should do predictable work and return structured output.
 | `scripts/intake_email_parser.py` | Parse booking-request email text into venue/date/time/city fields, missing-info flags, and an acknowledgment draft without booking anything | Intake Phase |
 | `scripts/intake_receipt_tool.py` | Wrap parsed booking-request email text with source metadata and write a local Intake Phase receipt/task | Intake Phase |
 | `scripts/scout_agent_tool.py` | Validate Scout Agent lead CSV structure and statuses | Intake / Scout |
+| `scripts/local_venue_folder_sync.py` | Create local per-venue gig folders under `/Volumes/VADER/Manifold/Neon_Blonde/Venues` and write local receipt/model digest files | Booking Phase / Local Files |
 | `scripts/bandsheet_verification_report.py` | Fetch public Google Calendar iCal + published Band Sheet JSON, normalize future gigs, and block on mismatches | Booking Phase / Accuracy Check |
 | `scripts/website_verification_report.py` | Fetch published Band Sheet JSON + WordPress public show posts, normalize future public shows, and block on public website drift | Website / Accuracy Check |
 | `scripts/agentmail_health_check.py` | Verify AgentMail key, inbox visibility, and optional explicit send test without exposing secrets | Email / Health Check |
@@ -86,6 +87,7 @@ Current working pieces:
 - Intake Phase local receipt writer.
 - Inbox monitor can create Intake receipts in supervised mode with `--write-intake-receipts`.
 - Scout lead CSV validator.
+- Local venue folder sync can create `/Venues/[Venue]/[Venue - YYYY-MM-DD]/` folders from a single event or the public calendar.
 - Public Band Sheet vs public Google Calendar verification checker.
 - Public website vs Band Sheet verification checker.
 - Calendar connector read path.
@@ -106,6 +108,7 @@ Supervised deployment is allowed now.
 Before unattended production automation:
 
 - Install a scheduled supervised monitor run once Mike approves cadence and receipt folder location.
+- Install a scheduled local venue folder sync once Mike approves cadence. Start without `--use-local-model`; enable the local model digest only after the model is stable.
 - Keep unknown-contact acknowledgments draft-only until Mike approves the sender policy.
 - Reauth or replace the local OAuth calendar token before relying on local Calendar API automation.
 - Build the dashboard approval queue before enabling routine write actions.

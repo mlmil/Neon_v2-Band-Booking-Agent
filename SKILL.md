@@ -349,6 +349,7 @@ All code changes should be committed and pushed to keep machines in sync.
 - Intake email parser: `python3 scripts/intake_email_parser.py --text "Can we book M Special on August 15 at 7pm in Goleta?"`
 - Intake receipt writer: `python3 scripts/intake_receipt_tool.py --sender "booking@example.com" --subject "M Special August date" --source-date "Tue, 09 Jun 2026 10:00:00 -0700" --text "Can we book M Special on August 15 at 7pm in Goleta?"`
 - Supervised inbox receipt mode: `python3 scripts/monitor_inbox.py --write-intake-receipts` flags booking-related inbox messages and writes local Intake receipts without sending replies.
+- Local venue folder sync: `python3 scripts/local_venue_folder_sync.py --sync-calendar` creates `/Volumes/VADER/Manifold/Neon_Blonde/Venues/[Venue]/[Venue - YYYY-MM-DD]/` folders and local receipts. Add `--use-local-model` only when the local model is stable.
 - Scout CSV validator: `python3 scripts/scout_agent_tool.py "/Volumes/VADER/Manifold/Neon_Blonde/Scout Agent/scout-leads.csv"`
 - Band Sheet verification checker: `python3 scripts/bandsheet_verification_report.py` compares the published Band Sheet JSON against the public Neon Blonde Google Calendar iCal feed. It requires no OAuth and should return `status: success` before trusting Band Sheet/calendar alignment.
 - Website verification checker: `python3 scripts/website_verification_report.py` compares the published Band Sheet JSON against WordPress public show posts. It should block with `WEBSITE_MISMATCH` when the public website is stale or wrong.
