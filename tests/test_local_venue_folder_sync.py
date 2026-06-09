@@ -5,6 +5,8 @@ from pathlib import Path
 from scripts.local_venue_folder_sync import (
     LocalGig,
     build_local_model_prompt,
+    clean_calendar_venue_title,
+    filter_gigs_on_or_after,
     gig_folder_name,
     sync_local_gig_folder,
 )
@@ -40,6 +42,17 @@ class LocalVenueFolderSyncTests(unittest.TestCase):
             self.assertTrue((root / "Ms Special").exists())
             self.assertTrue(Path(result["gig_folder"]).exists())
 
+    def test_sync_routes_test_venue_under_test_venues_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gig = LocalGig(venue="Club Bobaloo", city="Ventura", date="2026-10-07", time="7pm")
+
+            result = sync_local_gig_folder(gig, root)
+
+            self.assertEqual(result["status"], "success")
+            self.assertEqual(Path(result["venue_folder"]), root / "_Test Venues" / "Club Babaloo")
+            self.assertTrue(Path(result["gig_folder"]).exists())
+
     def test_sync_is_idempotent_for_existing_gig_folder(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -60,6 +73,33 @@ class LocalVenueFolderSyncTests(unittest.TestCase):
         self.assertIn("Leashless", prompt)
         self.assertIn("read-only", prompt)
         self.assertIn("Do not", prompt)
+
+    def test_sync_does_not_overwrite_existing_local_model_digest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gig = LocalGig(venue="Leashless", city="Ventura", date="2026-07-18", time="6pm")
+            first = sync_local_gig_folder(gig, root)
+            model_path = Path(first["local_model_path"])
+            model_path.write_text("manual notes\n", encoding="utf-8")
+
+            sync_local_gig_folder(gig, root)
+
+            self.assertEqual(model_path.read_text(encoding="utf-8"), "manual notes\n")
+
+    def test_filter_gigs_on_or_after_keeps_only_current_and_future(self):
+        gigs = [
+            LocalGig("The Sewer", "Ventura", "2026-01-17", "8pm"),
+            LocalGig("Leashless", "Ventura", "2026-07-18", "6pm"),
+        ]
+
+        filtered = filter_gigs_on_or_after(gigs, "2026-06-09")
+
+        self.assertEqual(filtered, [LocalGig("Leashless", "Ventura", "2026-07-18", "6pm")])
+
+    def test_clean_calendar_venue_title_removes_legacy_prefix_and_aliases(self):
+        self.assertEqual(clean_calendar_venue_title("Gig at Fig Mountain Brewing"), "Fig Mountain")
+        self.assertEqual(clean_calendar_venue_title("Fox Wine Company"), "Fox Wine")
+        self.assertEqual(clean_calendar_venue_title("Cruisery"), "The Cruisery")
 
 
 if __name__ == "__main__":

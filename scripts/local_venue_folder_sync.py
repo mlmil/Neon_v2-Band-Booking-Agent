@@ -7,7 +7,7 @@ import re
 import sys
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +20,16 @@ from scripts.venue_agent_tool import normalize_venue_name
 
 VENUES_ROOT = Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues")
 DEFAULT_LOCAL_MODEL_URL = "http://127.0.0.1:8080/completion"
+TEST_VENUE_ALIASES = {"club babaloo", "club bobaloo"}
+VENUE_TITLE_ALIASES = {
+    "gig at fig mountain brewing": "Fig Mountain",
+    "figueroa mountain": "Fig Mountain",
+    "fox wine company": "Fox Wine",
+    "validation": "Validation Ale",
+    "cruisery": "The Cruisery",
+    "harry's night club & beach bar": "Harrys NIghtclub",
+    "harrys night club & beach bar": "Harrys NIghtclub",
+}
 
 
 @dataclass(frozen=True)
@@ -37,6 +47,27 @@ def safe_folder_name(value: str) -> str:
 
 def gig_folder_name(venue: str, gig_date: str) -> str:
     return f"{safe_folder_name(venue)} - {gig_date}"
+
+
+def clean_calendar_venue_title(title: str) -> str:
+    cleaned = re.sub(r"^gig\s+at\s+", "", title.strip(), flags=re.IGNORECASE)
+    normalized = normalize_venue_name(title)
+    if normalized in TEST_VENUE_ALIASES:
+        return "Club Babaloo"
+    alias = VENUE_TITLE_ALIASES.get(title.lower().strip()) or VENUE_TITLE_ALIASES.get(cleaned.lower().strip())
+    return alias or cleaned
+
+
+def is_test_venue(title: str) -> bool:
+    return normalize_venue_name(title) in TEST_VENUE_ALIASES
+
+
+def filter_gigs_on_or_after(gigs: list[LocalGig], start_date: str | date) -> list[LocalGig]:
+    if isinstance(start_date, str):
+        start = date.fromisoformat(start_date)
+    else:
+        start = start_date
+    return [gig for gig in gigs if date.fromisoformat(gig.date) >= start]
 
 
 def resolve_venue_folder(venue: str, venues_root: Path) -> Path | None:
@@ -101,6 +132,8 @@ def write_local_model_file(
     model_url: str = DEFAULT_LOCAL_MODEL_URL,
 ) -> Path:
     path = gig_folder / "LOCAL_MODEL_DIGEST.md"
+    if path.exists():
+        return path
     if use_local_model:
         try:
             digest = request_local_model_digest(gig, model_url)
@@ -135,12 +168,18 @@ def sync_local_gig_folder(
     model_url: str = DEFAULT_LOCAL_MODEL_URL,
 ) -> dict:
     venues_root.mkdir(parents=True, exist_ok=True)
-    venue_folder = resolve_venue_folder(gig.venue, venues_root)
-    created_venue_folder = False
-    if venue_folder is None:
-        venue_folder = venues_root / safe_folder_name(gig.venue)
+    venue_name = clean_calendar_venue_title(gig.venue)
+    if is_test_venue(venue_name):
+        venue_folder = venues_root / "_Test Venues" / "Club Babaloo"
         venue_folder.mkdir(parents=True, exist_ok=True)
-        created_venue_folder = True
+        created_venue_folder = False
+    else:
+        venue_folder = resolve_venue_folder(venue_name, venues_root)
+        created_venue_folder = False
+        if venue_folder is None:
+            venue_folder = venues_root / safe_folder_name(venue_name)
+            venue_folder.mkdir(parents=True, exist_ok=True)
+            created_venue_folder = True
 
     gig_folder = venue_folder / gig_folder_name(venue_folder.name, gig.date)
     created_gig_folder = not gig_folder.exists()
@@ -168,7 +207,11 @@ def sync_local_gig_folder(
 def fetch_calendar_gigs(calendar_url: str = PUBLIC_CALENDAR_ICS_URL) -> list[LocalGig]:
     with urllib.request.urlopen(calendar_url, timeout=20) as response:
         ics = response.read().decode("utf-8")
-    return [LocalGig(venue=gig["venue"], city=gig["city"], date=gig["date"], time=gig["time"]) for gig in parse_calendar_ics(ics)]
+    gigs = [
+        LocalGig(venue=clean_calendar_venue_title(gig["venue"]), city=gig["city"], date=gig["date"], time=gig["time"])
+        for gig in parse_calendar_ics(ics)
+    ]
+    return filter_gigs_on_or_after(gigs, datetime.now().date())
 
 
 def _local_gig_from_start(title: str, location: str, start: str) -> LocalGig:
@@ -176,7 +219,12 @@ def _local_gig_from_start(title: str, location: str, start: str) -> LocalGig:
     hour = start_dt.hour % 12 or 12
     suffix = "am" if start_dt.hour < 12 else "pm"
     minute = f":{start_dt.minute:02d}" if start_dt.minute else ""
-    return LocalGig(venue=title.strip(), city=location.strip(), date=start_dt.date().isoformat(), time=f"{hour}{minute}{suffix}")
+    return LocalGig(
+        venue=clean_calendar_venue_title(title),
+        city=location.strip(),
+        date=start_dt.date().isoformat(),
+        time=f"{hour}{minute}{suffix}",
+    )
 
 
 def main() -> int:
