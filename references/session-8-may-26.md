@@ -1,5 +1,7 @@
 # Session 8: May 26, 2026 — Quick Pulse Check (Cron-Fired)
 
+> Superseded status note (Jun 9, 2026): the Jeff wedding contract is no longer stalled at the May 19 re-attachment request. Current Gmail/Drive evidence is tracked in `references/venues.md`; use that active reference for future briefings.
+
 ## Setup
 
 - **Date**: Tuesday, May 26, 2026

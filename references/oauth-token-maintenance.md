@@ -50,7 +50,7 @@ When the user wants to re-authenticate:
 
 Run the helper script:
 ```bash
-python3 ~/.hermes/skills/Neon_v1/scripts/generate_oob_auth_url.py
+python3 ~/.hermes/skills/Neon_v2/scripts/generate_oob_auth_url.py
 ```
 
 This prints a Google OAuth URL. Present it to the user with clear instructions.
@@ -87,7 +87,7 @@ print(f"Token saved to {TOKEN_FILE}")
 ### Step 4: Verify
 
 ```bash
-python3 ~/.hermes/skills/Neon_v1/scripts/neon_calendar_oauth.py
+python3 ~/.hermes/skills/Neon_v2/scripts/neon_calendar_oauth.py
 ```
 
 If the calendar events print correctly, the token is working.

@@ -1,0 +1,26 @@
+{
+  "required_fields": [
+    "venue_name",
+    "gig_date",
+    "city",
+    "start_time",
+    "calendar_status",
+    "venue_folder_status",
+    "bandsheet_status",
+    "payment_status",
+    "promo_status",
+    "portal_status",
+    "open_questions"
+  ],
+  "allowed_statuses": ["success", "needs_review", "blocked", "failed", "uncertain"],
+  "payment_statuses": ["unpaid", "paid", "partial", "needs_review"],
+  "protected_writes": [
+    "calendar_update",
+    "bandsheet_publish",
+    "venue_email_send",
+    "portal_share",
+    "payment_complete",
+    "booking_confirmed",
+    "rate_change"
+  ]
+}

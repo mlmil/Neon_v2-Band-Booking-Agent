@@ -1,0 +1,34 @@
+{
+  "columns": [
+    "lead_id",
+    "venue_name",
+    "city",
+    "county",
+    "region_priority",
+    "status",
+    "lead_score",
+    "source_type",
+    "source_url",
+    "similar_bands_seen",
+    "booking_contact_name",
+    "booking_contact_email",
+    "booking_contact_phone",
+    "lead_owner",
+    "next_action",
+    "follow_up_date",
+    "last_checked",
+    "notes"
+  ],
+  "allowed_statuses": [
+    "discovered",
+    "researching",
+    "qualified",
+    "ready_to_contact",
+    "contacted",
+    "follow_up",
+    "warm",
+    "not_a_fit",
+    "booked",
+    "converted_to_venue_agent"
+  ]
+}

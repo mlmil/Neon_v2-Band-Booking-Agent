@@ -2,7 +2,7 @@
 
 ## Design Decision: Direct API calls vs Hermes subprocess
 
-**Tried first**: `hermes chat -q "<query>" -s Neon_v1 -Q` spawned as a Python subprocess.
+**Tried first**: `hermes chat -q "<query>" -s Neon_v2 -Q` spawned as a Python subprocess.
 
 **Result**: Hung indefinitely. The Hermes CLI session tries to connect to MCP servers (Desktop Commander, CamoFox browser, Google Workspace MCPs) that aren't available in the subprocess context. The subprocess call never returned.
 
@@ -12,7 +12,7 @@
 |---|---|---|
 | Neon Blonde calendar | `google.oauth2.credentials.Credentials` + `googleapiclient` | `~/.hermes/neon_oauth_token.json` |
 | Mark's Freshground calendar | Fetch public iCal feed + parse VEVENT blocks | None (public feed) |
-| Gmail IMAP | `imaplib.IMAP4_SSL` | `~/.hermes/skills/Neon_v1/smtp_config.json` (app password) |
+| Gmail IMAP | `imaplib.IMAP4_SSL` | `~/.hermes/skills/Neon_v2/smtp_config.json` (app password) |
 | AgentMail send | REST API `POST /v0/inboxes/{id}/messages/send` | `AGENTMAIL_API_KEY` from `~/.zshenv` |
 | Telegram | Bot API `api.telegram.org/bot{token}/...` | `~/.hermes/secure/neon_bot_token.txt` |
 

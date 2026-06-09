@@ -1,5 +1,7 @@
 # Briefing Workflow — Worked Example (May 21-23, 2026)
 
+> Superseded status note (Jun 9, 2026): Jeff's Wedding contract references in this worked example describe the May stalled state only. For current handling, use `references/venues.md` and `scripts/contract_flow.py`.
+
 ## Purpose
 
 This document shows how the full briefing workflow (Phases 1–4 in SKILL.md) fits together as a single end-to-end process. It's a concrete reference for future sessions: what data to fetch, in what order, how to cross-reference, and how to synthesize.
@@ -98,7 +100,7 @@ result = web_extract(urls=["https://mlmil.github.io/NeonBlonde-Bandsheet/docs/"]
 import imaplib, json
 from pathlib import Path
 
-with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v1' / 'smtp_config.json')) as f:
+with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v2' / 'smtp_config.json')) as f:
     cfg = json.load(f)
 
 mail = imaplib.IMAP4_SSL(cfg['imap_host'], cfg['imap_port'])

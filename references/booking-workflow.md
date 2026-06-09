@@ -248,3 +248,22 @@ If a gig conflicts with travel time to another event that same day, flag it even
 
 ### Payment Terms
 Log payment information (some venues pay same-night, others invoice later). Track this for accounting/band finances.
+
+### Private Event Contract Terms
+
+For weddings and private events, keep contract receipt and deposit receipt separate:
+
+1. Contract sent or Drive doc shared is not signed.
+2. Signed Google Doc or signed PDF attachment means the contract lane is received.
+3. A small payment test only confirms the payment path.
+4. The deposit is open until the real deposit amount is confirmed received.
+5. If email and contract disagree on time, mark `TIME_MISMATCH_REVIEW` before returning the fully signed copy.
+
+For Jeff's Wedding on Sunday, September 6, 2026, the current active state is:
+
+- signed PDF received in Gmail on June 6, 2026
+- $1 Venmo test confirmed by Mike on June 8, 2026
+- $650 deposit not confirmed in Gmail evidence
+- local Drive contract says 7:00 PM-9:00 PM, while Jeff's June 6 email says 8:00 PM-10:00 PM
+
+Use `scripts/contract_flow.py` to classify this evidence for briefings and dashboards.

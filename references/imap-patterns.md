@@ -8,7 +8,7 @@
 import imaplib, json
 from pathlib import Path
 
-with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v1' / 'smtp_config.json')) as f:
+with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v2' / 'smtp_config.json')) as f:
     cfg = json.load(f)
 
 mail = imaplib.IMAP4_SSL(cfg['imap_host'], cfg['imap_port'])
@@ -16,7 +16,7 @@ mail.login(cfg['email'], cfg['app_password'])
 mail.select("INBOX")
 ```
 
-Config file: `~/.hermes/skills/Neon_v1/smtp_config.json`
+Config file: `~/.hermes/skills/Neon_v2/smtp_config.json`
 
 ## Sent Mail Search via IMAP
 
@@ -29,7 +29,7 @@ import imaplib, json, email
 from email import policy
 from pathlib import Path
 
-with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v1' / 'smtp_config.json')) as f:
+with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v2' / 'smtp_config.json')) as f:
     cfg = json.load(f)
 
 mail = imaplib.IMAP4_SSL(cfg['imap_host'], cfg['imap_port'])

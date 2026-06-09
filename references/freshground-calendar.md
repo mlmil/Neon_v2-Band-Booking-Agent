@@ -241,9 +241,9 @@ The fix: convert BOTH timestamps to Pacific, then compare `.date()` to the targe
 ### A reusable script exists
 Instead of writing ad-hoc parsing each time, use the skill's built-in script. From anywhere:
 ```bash
-python3 /Users/studio_hub/.hermes/skills/Neon_v1/scripts/check-freshground-calendar.py              # today
-python3 /Users/studio_hub/.hermes/skills/Neon_v1/scripts/check-freshground-calendar.py 2026-05-26   # specific date
-python3 /Users/studio_hub/.hermes/skills/Neon_v1/scripts/check-freshground-calendar.py --week        # next 7 days
+python3 /Users/studio_hub/.hermes/skills/Neon_v2/scripts/check-freshground-calendar.py              # today
+python3 /Users/studio_hub/.hermes/skills/Neon_v2/scripts/check-freshground-calendar.py 2026-05-26   # specific date
+python3 /Users/studio_hub/.hermes/skills/Neon_v2/scripts/check-freshground-calendar.py --week        # next 7 days
 ```
 This handles UTC→Pacific conversion, CLOSED day detection, and chronological sorting.
 

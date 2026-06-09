@@ -1,0 +1,15 @@
+{
+  "required_fields": [
+    "canonical_venue_name",
+    "aliases",
+    "city",
+    "contact_people",
+    "email_policy",
+    "sms_policy",
+    "typical_rate",
+    "payment_notes",
+    "load_in_notes",
+    "marketing_notes",
+    "portal_rules"
+  ]
+}
