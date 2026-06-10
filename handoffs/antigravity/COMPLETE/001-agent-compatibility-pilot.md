@@ -75,3 +75,18 @@ Not approved:
 - No secret values appear in terminal output or the completion report.
 - Existing unrelated work remains untouched.
 - A clear report is present under `handoffs/antigravity/REVIEW/`.
+
+## Completion Report
+
+```text
+Status: SUCCESS
+Files changed: 0
+Commands run: 4
+Tests passed: 4
+Tests failed: 0
+Protected writes performed: 0
+Credential values exposed: 0
+Unrelated existing changes preserved: Yes
+Blockers: WordPress credentials missing (expected for pilot)
+Recommended next step: Codex review
+```
