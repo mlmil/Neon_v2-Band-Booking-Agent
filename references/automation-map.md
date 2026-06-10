@@ -70,6 +70,7 @@ These scripts should do predictable work and return structured output.
 | `scripts/neon_monitor.py` | Stub pointing to canonical Hermes monitor | Briefing / Monitoring |
 | `scripts/post_gig_payout_tool.py` | Calculate payout totals, track base pay still owed separately from tips, and upsert supervised CSV ledger rows by gig ID | Post-Gig Phase |
 | `scripts/post_gig_queue_sync.py` | Sync calendar gigs into a local queue, keep future shows dormant, and activate closeout only after each show ends | Post-Gig Phase |
+| `scripts/neon_health_check.py` | Run read-only AgentMail, Band Sheet/calendar, website/Band Sheet, and dashboard-data checks with isolated lane receipts | Cross-phase Verification |
 | `scripts/agent_compatibility_check.py` | Verify Codex, Claude, and Hermes share skill access, runtime capabilities, credential availability, and Club Babaloo safety boundaries | Agent Platform |
 
 ## Workflow Phases
