@@ -258,6 +258,20 @@ After the gig passes, move the item into the active Post-Gig queue and ask Mike 
 - Still owed
 - Notes
 
+## Payment Handles
+
+Primary Neon Blonde Venmo:
+
+```text
+@neonblondeband
+```
+
+Rules:
+
+- Use this handle for venue-facing payment instructions when Mike approves sending payment details.
+- A Venmo test payment proves the payment path only; it does not prove the deposit or gig payment was received.
+- Do not mark payment complete until Mike confirms the actual amount received.
+
 Dashboard form fields:
 
 ```text
@@ -284,15 +298,42 @@ base_pay_received
 tips_received
 total_received
 payment_method
+payment_handle
 received_by
 still_owed
 payment_status
 entered_by
 entered_at
+updated_at
 notes
 ```
 
 The agent should keep reminding Mike until payment and tips are recorded or explicitly marked unknown.
+
+Local payout tracker:
+
+```bash
+python3 scripts/post_gig_payout_tool.py \
+  --gig-id "tonys-2026-06-12" \
+  --venue "Tony's Pizza" \
+  --city "Ventura" \
+  --date "2026-06-12" \
+  --base-pay-expected 500 \
+  --base-pay-received 500 \
+  --tips-received 100 \
+  --payment-method Venmo \
+  --received-by Mike
+```
+
+Default ledger:
+
+```text
+data/post_gig/payouts.csv
+```
+
+The tracker calculates base pay still owed separately from tips. A fully paid
+row remains `needs_review` until Mike explicitly submits
+`--payment-status paid_complete`.
 
 ## Phase Boundaries
 

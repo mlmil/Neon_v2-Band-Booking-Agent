@@ -68,6 +68,7 @@ These scripts should do predictable work and return structured output.
 | `scripts/check-freshground-calendar.py` | Check Freshground calendar availability | Booking Ops |
 | `scripts/monitor_inbox.py` | Flag booking-related inbox messages and, with `--write-intake-receipts`, create local Intake receipts without sending replies | Intake / Email |
 | `scripts/neon_monitor.py` | Stub pointing to canonical Hermes monitor | Briefing / Monitoring |
+| `scripts/post_gig_payout_tool.py` | Calculate payout totals, track base pay still owed separately from tips, and upsert supervised CSV ledger rows by gig ID | Post-Gig Phase |
 
 ## Workflow Phases
 
@@ -75,7 +76,7 @@ These scripts should do predictable work and return structured output.
 |---|---|---|---|---|
 | Intake Phase | Booking email arrives | Parse request, draft/auto-ack known contacts, create task/reminder | Future intake parser, email monitor | Calendar confirmation |
 | Booking Phase | Calendar event exists | Venue Agent reasoning, logistics warnings, mismatch explanation | Venue planner, Band Sheet compare, Scout validator | Publish/send/share/change terms |
-| Post-Gig Phase | Show date passes | Ask for pay/tips, summarize missing closeout data, rebooking prompt | Future payout spreadsheet updater | Payment status completion |
+| Post-Gig Phase | Show date passes | Ask for pay/tips, summarize missing closeout data, rebooking prompt | Local payout spreadsheet updater | Payment status completion |
 
 ## Current Automation
 
@@ -92,13 +93,14 @@ Current working pieces:
 - Public website vs Band Sheet verification checker.
 - Calendar connector read path.
 - AgentMail protocol reference.
+- Supervised Post-Gig payout tracker with a local CSV ledger.
 
 Current partial/broken pieces:
 
 - Local OAuth token at `~/.hermes/neon_oauth_token.json` has previously failed with `invalid_grant`; use connector/public read path or reauth before relying on local OAuth.
 - Dashboard is specified but not implemented.
 - Intake parser, local receipt writer, and inbox monitor receipt mode are implemented; scheduled unattended inbox automation is not installed yet.
-- Post-Gig payout spreadsheet updater is specified but not implemented.
+- Post-Gig payout tracker is implemented; dashboard form integration and automatic queue population are not implemented.
 - WordPress API auth has been proven with Application Passwords when a normal User-Agent is supplied. The target for public website cards is `wp/v2/show`, not the full Band Sheet and not the Events Calendar endpoint.
 
 ## Deployment Blockers
@@ -112,7 +114,7 @@ Before unattended production automation:
 - Keep unknown-contact acknowledgments draft-only until Mike approves the sender policy.
 - Reauth or replace the local OAuth calendar token before relying on local Calendar API automation.
 - Build the dashboard approval queue before enabling routine write actions.
-- Implement Post-Gig payout spreadsheet updates and dashboard entry form.
+- Connect the Post-Gig payout tracker to the dashboard entry form and confirmed-gig queue.
 - Add a scheduled health check for AgentMail, Band Sheet/calendar alignment, and website/Band Sheet alignment.
 
 ## Approval Policy
