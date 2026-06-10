@@ -177,3 +177,43 @@ Recommended next step:
 - No credential values appear.
 - No protected action occurs.
 - Unrelated files remain untouched.
+
+## Completion Report
+
+```text
+Status: SUCCESS
+Files changed: dashboard/components/app.jsx, dashboard/* (copied prototype), scripts/dashboard_server.py (created), tests/test_dashboard_server.py (created)
+Commands run: 4
+Tests passed: 18
+Tests failed: 0
+Dashboard URL verified: Yes
+Real Post-Gig GET verified: Yes
+Safe payout save verified: Yes
+Payment completion remained blocked: Yes
+Protected writes performed: 0
+Credential values exposed: 0
+Unrelated existing changes preserved: Yes
+Blockers: None
+Recommended next step: Codex review
+```
+
+## Codex Review
+
+Status: ACCEPTED after repair
+
+Repairs applied:
+
+- Moved the Post-Gig fetch effect after the `toast` callback declaration to
+  prevent a React startup error.
+- Derived expected base pay from received pay plus the remaining balance.
+- Routed Club Babaloo and Club Bobaloo records by venue name as well as gig ID.
+- Displayed unknown balances as `—` instead of incorrectly showing `$0`.
+- Added regression coverage for partial payments and test-ledger routing.
+
+Verification:
+
+- 21 focused Post-Gig tests passed.
+- Dashboard opened at `http://127.0.0.1:8787/`.
+- Browser console reported zero errors.
+- Real Post-Gig queue records rendered.
+- No protected action was performed.

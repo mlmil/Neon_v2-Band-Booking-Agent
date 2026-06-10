@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <link rel="icon" href="data:,">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Neon V2 — Operations Dashboard</title>
+  <link rel="stylesheet" href="assets/colors_and_type.css" />
+  <style>
+    /* ---- semantic status tokens (added on top of the brand amber, which a
+         status board genuinely needs; kept desaturated to stay civic) ---- */
+    [data-theme="dark"]  { --ok:#7FB069; --warn:var(--accent); --bad:#E0584C; --idle:#8a8d92; }
+    [data-theme="light"] { --ok:#4F7A3F; --warn:var(--accent); --bad:#C0392B; --idle:#6b6b66; }
+
+    * { box-sizing: border-box; }
+    html, body { background: var(--bg); }
+    body { margin: 0; }
+    ::selection { background: var(--accent); color: var(--accent-ink); }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 12px; height: 12px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--rule); border: 3px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+    /* masonry grid */
+    .nb-grid { column-gap: 20px; column-count: 3; }
+    .nb-grid > div { break-inside: avoid; margin-bottom: 20px; }
+    @media (max-width: 1340px) { .nb-grid { column-count: 2; } }
+    @media (max-width: 980px)  { .nb-grid { column-count: 1; } }
+
+    /* today strip — wrap-safe hairline dividers */
+    .nb-today { display: grid; grid-template-columns: 1.5fr 1fr 1.1fr 1fr; gap: 1px; background: var(--rule); }
+    @media (max-width: 980px) { .nb-today { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .nb-today { grid-template-columns: 1fr; } }
+    .nb-swim { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 1080px) { .nb-swim { grid-template-columns: 1fr; } }
+
+    /* button hovers */
+    .nb-btn { transition: background .15s, color .15s, border-color .15s; }
+    .nb-btn--default:hover { border-color: var(--fg-muted); color: var(--fg); }
+    a.nb-btn--default:hover { border-color: var(--accent); color: var(--accent); }
+    .nb-btn--amber:hover { background: var(--accent); color: var(--accent-ink); }
+    .nb-btn--protected:hover { background: var(--bad); color: #fff; }
+    .nb-x:hover { color: var(--fg); border-color: var(--fg-muted); }
+    .nb-confirm:not(:disabled):hover { filter: brightness(1.08); }
+    .nb-item { transition: border-color .15s, background .15s; }
+
+    .nb-toast { animation: nbslide .22s cubic-bezier(.2,.6,.2,1); }
+    @keyframes nbslide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent) !important; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    @media (max-width: 640px) { :root { --page-pad-x: 18px; } .nb-hide-sm { display: none !important; } }
+    @media (max-width: 1120px) { .nb-hide-md { display: none !important; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="data/data.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="components/ui.jsx"></script>
+  <script type="text/babel" src="components/modals.jsx"></script>
+  <script type="text/babel" src="components/panels.jsx"></script>
+  <script type="text/babel" src="components/app.jsx"></script>
+</body>
+</html>
