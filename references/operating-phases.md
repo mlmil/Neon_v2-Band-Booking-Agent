@@ -258,6 +258,29 @@ After the gig passes, move the item into the active Post-Gig queue and ask Mike 
 - Still owed
 - Notes
 
+Queue sync:
+
+```bash
+python3 scripts/post_gig_queue_sync.py
+```
+
+Default queue:
+
+```text
+data/post_gig/queue.csv
+```
+
+Queue states:
+
+```text
+scheduled       -> show has not ended; no payout prompt yet
+needs_closeout  -> show ended; ask Mike for pay and tip details
+closed          -> manually protected; calendar sync must not reopen it
+```
+
+The queue uses the calendar event end time. It does not activate a show merely
+because the show date has started.
+
 ## Payment Handles
 
 Primary Neon Blonde Venmo:
