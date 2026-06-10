@@ -36,16 +36,16 @@ Protected writes:
 
 | Agent / Model | Role | Allowed Work | Not Allowed Without Approval |
 |---|---|---|---|
-| Codex | Mastermind/orchestration layer for Neon V2 design, architecture, specs, engineering, local scripts, tests, repo edits, and dry-run validation | Design the system with Mike, route work across phases, build/verify tools, read local files, draft specs, run dry-run checks | Source-of-truth writes unless Mike asks |
-| Claude | Second-opinion checker, independent review, Band Sheet verification partner | Independently compare calendar/Band Sheet, review plans/specs | Reuse Codex conclusions as its own verification |
-| Hermes Agent | Local automation runner / operational bridge | Scheduled checks, reminders, local workflow execution | Silent source-of-truth writes |
+| Codex | Mastermind/orchestration layer and full operator | Design, engineering, checks, local workflows, and approved service actions | Protected writes without Mike approval |
+| Claude | Independent verifier and full operator | Independent checks, reviews, local workflows, and approved service actions | Protected writes without Mike approval |
+| Hermes Agent | Automation runner, operational bridge, and full operator | Scheduled checks, reminders, local workflows, and approved service actions | Protected writes without Mike approval |
 | Antigravity | Available AI workspace/model lane | Future specialized work; role not finalized | Production ownership until defined |
 | Local model | Experimental observer | Read-only digest, folder summaries, low-risk classification | Calendar, Band Sheet, email, payout, portal, or receipt writes |
 
 Current assignment rule:
 
 ```text
-Codex is the mastermind. Other agents are assigned specific lanes only after Mike and Codex define the lane clearly.
+Codex is the mastermind. Codex, Claude, and Hermes share credential/API parity and may operate Neon V2 within the same approval gates.
 ```
 
 ## Deterministic Local Scripts
@@ -70,6 +70,7 @@ These scripts should do predictable work and return structured output.
 | `scripts/neon_monitor.py` | Stub pointing to canonical Hermes monitor | Briefing / Monitoring |
 | `scripts/post_gig_payout_tool.py` | Calculate payout totals, track base pay still owed separately from tips, and upsert supervised CSV ledger rows by gig ID | Post-Gig Phase |
 | `scripts/post_gig_queue_sync.py` | Sync calendar gigs into a local queue, keep future shows dormant, and activate closeout only after each show ends | Post-Gig Phase |
+| `scripts/agent_compatibility_check.py` | Verify Codex, Claude, and Hermes share skill access, runtime capabilities, credential availability, and Club Babaloo safety boundaries | Agent Platform |
 
 ## Workflow Phases
 

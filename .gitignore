@@ -1,3 +1,5 @@
 Neon_v2/
 .DS_Store
 data/post_gig/*.csv
+.secrets/
+data/compatibility/

@@ -269,6 +269,13 @@ Known booking contacts may receive the transparent Neon V2 acknowledgment automa
 When Mike asks what AI is doing, what scripts are doing, what automation exists, or which model/agent owns what, load `references/automation-map.md`.
 Default role assignment: Codex is Mike's mastermind/orchestration layer for Neon V2 design and engineering. Other agents get specific lanes only after Mike and Codex define them.
 
+### Agent Compatibility
+Codex, Claude, and Hermes are full Neon V2 operators when
+`scripts/agent_compatibility_check.py` returns `status: success` for that agent.
+Load `AGENT_COMPATIBILITY.md` for the shared credential, API, and approval
+contract. Credentials must have parity across all three agents; never create an
+agent-only secret or expose secret values in receipts.
+
 ### Failure Handling
 When any workflow partially fails, sources disagree, a write cannot be verified, or Mike asks what can break, load `references/failure-handling.md`.
 
@@ -356,6 +363,7 @@ All code changes should be committed and pushed to keep machines in sync.
 - Contract flow classifier: `scripts/contract_flow.py` separates signed-contract receipt, test-payment confirmation, actual deposit receipt, and final-copy follow-up. Use it for private-event contract/dashboard states before marking payment complete.
 - Post-Gig queue sync: `python3 scripts/post_gig_queue_sync.py` writes `data/post_gig/queue.csv`, keeps future shows `scheduled`, and changes them to `needs_closeout` only after their calendar end time. A manually `closed` row stays closed.
 - Post-Gig payout tracker: `python3 scripts/post_gig_payout_tool.py --gig-id "tonys-2026-06-12" --venue "Tony's Pizza" --city "Ventura" --date "2026-06-12" --base-pay-expected 500 --base-pay-received 500 --tips-received 100 --payment-method Venmo --received-by Mike`. It writes `data/post_gig/payouts.csv`; use `--payment-status paid_complete` only after Mike explicitly confirms the full base payment.
+- Agent compatibility checker: `python3 scripts/agent_compatibility_check.py --agent codex|claude|hermes` verifies shared skill access, local paths, public network access, credential parity, and the safe Club Babaloo fixture without exposing secret values.
 - Primary Neon Blonde Venmo: `@neonblondeband`. Use for payment instructions only when Mike approves sending payment details; never mark payment complete without Mike confirming actual amount received.
 - AgentMail health checker: `python3 scripts/agentmail_health_check.py` verifies the active key can see `neon_blonde@agentmail.to` without exposing the key. Use `--send-test-to` only when an explicit live send test is needed.
 - AgentMail send wrapper: `python3 scripts/agentmail_send.py --to "..." --subject "..." --text "..." --fallback-gmail-draft` runs the health check first, sends from `neon_blonde@agentmail.to`, signs as `- Neon V2`, returns a safe receipt, and emits a Gmail draft payload if AgentMail is blocked.
