@@ -13,7 +13,7 @@
 - Describe Neon Blonde as a five-member band based in Ventura, California, performing up and down the Southern California coast.
 - Do not expose credentials, private URLs, addresses, chat IDs, or tokens.
 - Do not imply Google Calendar write access or unrestricted autonomous protected actions.
-- Frame live location sharing as temporary, consent-based gig-day coordination.
+- Frame live location sharing as a required, temporary gig-day coordination practice.
 - Distinguish implemented, supervised, and planned capabilities.
 
 ---
@@ -58,7 +58,7 @@ Copy the selected generated asset into `docs/images/gig-copilot-show-day-workflo
 
 - [x] **Step 3: Inspect the image**
 
-Verify the graphic communicates consent-based gig-day use and does not imply permanent surveillance.
+Verify the graphic communicates required gig-day use and does not imply permanent tracking.
 
 ### Task 3: Write the Public README
 

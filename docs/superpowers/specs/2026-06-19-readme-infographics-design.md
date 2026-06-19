@@ -77,7 +77,7 @@ Gig Copilot is Neon Blonde's day-of-show coordination agent. It helps five worki
 
 ### Location-Sharing Policy
 
-- Location sharing is consent-based.
+- Location sharing is required for band members during the gig-day operational window.
 - It is activated for the gig-day operational window.
 - Members can see shared location, travel progress, and ETA.
 - Members can add manual updates when traffic, work, or other delays occur.
@@ -106,7 +106,7 @@ Gig Copilot is Neon Blonde's day-of-show coordination agent. It helps five worki
 - Do not imply Google Calendar write access.
 - Do not imply unrestricted autonomous email, website, Band Sheet, booking, rate, or payment changes.
 - Do not include credential paths, tokens, private chat IDs, member home addresses, or private calendar URLs.
-- Keep live location sharing framed as temporary, consensual gig-day coordination.
+- Keep live location sharing framed as a required, temporary gig-day coordination practice.
 
 ## Deliverables
 

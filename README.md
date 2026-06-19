@@ -104,7 +104,7 @@ The members of Neon Blonde have jobs, commitments, different starting locations,
 
 Its show-day responsibilities include:
 
-- **Consent-based live location sharing** during the active gig-day window
+- **Required live location sharing** during the active gig-day window
 - **Shared ETAs** for all five members
 - **Traffic monitoring** and delay awareness
 - **Weather monitoring** for travel, load-in, and outdoor-show risks
@@ -113,7 +113,7 @@ Its show-day responsibilities include:
 - **Gig changes** distributed without requiring everyone to continuously watch a phone
 - **Coordinated arrival and setup** so the band knows who is en route, delayed, onsite, or ready
 
-Live location sharing is intended for gig-day coordination, not permanent tracking. It is activated with member consent for the operational window and ends when the show-day workflow closes.
+Live location sharing is a gig-day requirement for band members. It provides the shared travel and arrival picture the band needs to operate safely and on time. Tracking is limited to the active gig-day operational window and ends when the show-day workflow closes.
 
 The current repository contains the Gig Copilot foundation, Telegram transport, member profiles, message handling, scheduled gig-day broadcasts, and supporting tests. Expanded live location, traffic, and weather intelligence are part of the continuing Gig Copilot implementation.
 
