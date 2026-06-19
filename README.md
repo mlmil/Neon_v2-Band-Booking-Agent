@@ -10,7 +10,7 @@
 
 ![Neon V2 agentic workflow](docs/images/neon-v2-agentic-workflow.png)
 
-Neon V2 is a supervised agentic workflow built for **Neon Blonde**, a five-member band based in Ventura, California, performing up and down the Southern California coast.
+Neon V2 is a supervised operations agent built for **Neon Blonde**, a five-member band based in Ventura, California, performing up and down the Southern California coast.
 
 Running an active band means coordinating far more than a set list. Booking inquiries arrive through email and messages. Five people have jobs, travel constraints, unavailable dates, rehearsals, equipment, and changing arrival times. Venue details must stay aligned across calendars, the Band Sheet, local files, public show listings, and band communication. After each show, payouts and multiple types of tips still need to be closed out.
 
@@ -74,7 +74,7 @@ Codex, Claude, Gemini, and Hermes can operate the system through a shared compat
 
 ![Gig Copilot show-day workflow](docs/images/gig-copilot-show-day-workflow.png)
 
-Gig Copilot is the day-of-show operations layer for Neon Blonde.
+Gig Copilot is Neon Blonde's day-of-show coordination agent.
 
 The members of Neon Blonde have jobs, commitments, different starting locations, and different routes to each venue. On gig day, repeatedly checking a group chat is not always practical or safe. Gig Copilot is designed to maintain a shared operational picture while the band is working, loading equipment, or driving.
 
@@ -171,7 +171,7 @@ Confirmed Gig Operations     Draft / Review Queue
 | `scripts/` | Deterministic intake, verification, monitoring, payout, folder, and health tools |
 | `dashboard/` | Local operational dashboard |
 | `Telegram Bot/` | NeonBotstein conversational operations and booking watcher |
-| `Gig Copilot Bot/` | Day-of-show coordination and broadcast system |
+| `Gig Copilot Bot/` | Day-of-show coordination agent and broadcast tools |
 | `launch_agents/` | macOS scheduled automation definitions |
 | `tests/` | Main system regression tests |
 | `docs/superpowers/` | Approved designs and implementation plans |
@@ -209,12 +209,12 @@ Secrets, runtime receipts, logs, local tool state, and private operational data 
 
 ## Project Status
 
-Neon V2 is an active, supervised production system. Booking intake, verification, health monitoring, venue operations, public-show comparison, Telegram workflows, post-gig payout tracking, and reminder infrastructure are implemented at varying levels of production maturity.
+Neon V2 is an active, supervised production agent. Booking intake, verification, health monitoring, venue operations, public-show comparison, Telegram workflows, post-gig payout tracking, and reminder infrastructure are implemented at varying levels of production maturity.
 
 Gig Copilot's bot foundation and show-day communication framework are implemented. Richer live location sharing, route intelligence, traffic monitoring, and weather-driven alerts remain an active development lane.
 
 ## Why This Repository Exists
 
-Neon V2 is both a working band-management system and a practical example of agentic software applied to a real small organization. It demonstrates how AI reasoning, deterministic tools, human approval, multiple communication channels, and durable operational records can work together without handing uncontrolled authority to a model.
+Neon V2 is both a working band-management agent and a practical example of agentic software applied to a real small organization. It demonstrates how AI reasoning, deterministic tools, human approval, multiple communication channels, and durable operational records can work together without handing uncontrolled authority to a model.
 
 The goal is simple: fewer dropped details, fewer conflicting versions of the truth, safer travel, better-informed decisions, and five musicians arriving ready to play.

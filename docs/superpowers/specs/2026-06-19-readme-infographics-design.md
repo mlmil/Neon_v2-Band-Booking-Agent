@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Replace the minimal repository README with a detailed, public-facing explanation of Neon V2: an agentic operations system built for Neon Blonde, a five-member band based in Ventura, California, that performs throughout the Southern California coast.
+Replace the minimal repository README with a detailed, public-facing explanation of Neon V2: an operations agent built for Neon Blonde, a five-member band based in Ventura, California, that performs throughout the Southern California coast.
 
 The README should explain the system to musicians, venue partners, developers, and people interested in practical agentic workflows without exposing credentials, private operational data, or machine-specific configuration.
 
@@ -69,7 +69,7 @@ Show Neon V2 as a coastal band-operations command center that connects the compl
 
 ### Message
 
-Gig Copilot is Neon Blonde's day-of-show coordination system. It helps five working musicians reach the venue safely and on time while reducing the need to continuously monitor their phones.
+Gig Copilot is Neon Blonde's day-of-show coordination agent. It helps five working musicians reach the venue safely and on time while reducing the need to continuously monitor their phones.
 
 ### Operational Flow
 
