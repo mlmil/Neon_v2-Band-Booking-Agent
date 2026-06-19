@@ -68,7 +68,8 @@ These scripts should do predictable work and return structured output.
 | `scripts/check-freshground-calendar.py` | Check Freshground calendar availability | Booking Ops |
 | `scripts/monitor_inbox.py` | Flag booking-related inbox messages and, with `--write-intake-receipts`, create local Intake receipts without sending replies | Intake / Email |
 | `scripts/neon_monitor.py` | Stub pointing to canonical Hermes monitor | Briefing / Monitoring |
-| `scripts/post_gig_payout_tool.py` | Calculate payout totals, track base pay still owed separately from tips, and upsert supervised CSV ledger rows by gig ID | Post-Gig Phase |
+| `scripts/post_gig_payout_tool.py` | Upsert venue and date rows to the authoritative 5-column administrative payout CSV | Post-Gig Phase |
+| `scripts/payout_csv_sync.py` | Synchronize legacy Numbers rows and missing calendar gigs into the authoritative administrative payout CSV | Post-Gig Phase |
 | `scripts/post_gig_queue_sync.py` | Sync calendar gigs into a local queue, keep future shows dormant, and activate closeout only after each show ends | Post-Gig Phase |
 | `scripts/neon_health_check.py` | Run read-only AgentMail, Band Sheet/calendar, website/Band Sheet, and dashboard-data checks with isolated lane receipts | Cross-phase Verification |
 | `scripts/agent_compatibility_check.py` | Verify Codex, Claude, and Hermes share skill access, runtime capabilities, credential availability, and Club Babaloo safety boundaries | Agent Platform |
@@ -89,21 +90,20 @@ Current working pieces:
 - Venue Agent dry-run planner.
 - Intake Phase email parser.
 - Intake Phase local receipt writer.
-- Inbox monitor can create Intake receipts in supervised mode with `--write-intake-receipts`.
+- Scheduled AgentMail monitor sends each new human Neon message to Gemini with its full thread context, then posts a natural Telegram summary. Automated/system mail is filtered; venue-facing replies remain approval-gated.
 - Scout lead CSV validator.
 - Local venue folder sync can create `/Venues/[Venue]/[Venue - YYYY-MM-DD]/` folders from a single event or the public calendar.
 - Public Band Sheet vs public Google Calendar verification checker.
 - Public website vs Band Sheet verification checker.
-- Calendar connector read path.
+- Public calendar ID/iCal read path; no Calendar authentication.
 - AgentMail protocol reference.
 - Supervised Post-Gig payout tracker with a local CSV ledger.
 - Post-Gig queue sync creates scheduled and active closeout records from the public calendar.
 
 Current partial/broken pieces:
 
-- Local OAuth token at `~/.hermes/neon_oauth_token.json` has previously failed with `invalid_grant`; use connector/public read path or reauth before relying on local OAuth.
 - Dashboard is specified but not implemented.
-- Intake parser, local receipt writer, and inbox monitor receipt mode are implemented; scheduled unattended inbox automation is not installed yet.
+- Intake parser, local receipt writer, and scheduled inbox-to-Telegram notification are implemented.
 - Post-Gig payout tracker and automatic queue population are implemented; dashboard form integration is not implemented.
 - WordPress API auth has been proven with Application Passwords when a normal User-Agent is supplied. The target for public website cards is `wp/v2/show`, not the full Band Sheet and not the Events Calendar endpoint.
 
@@ -116,7 +116,6 @@ Before unattended production automation:
 - Install a scheduled supervised monitor run once Mike approves cadence and receipt folder location.
 - Scheduled local venue folder sync is active hourly. It uses `--use-local-model`, but only for missing digest files; existing local notes are left alone.
 - Keep unknown-contact acknowledgments draft-only until Mike approves the sender policy.
-- Reauth or replace the local OAuth calendar token before relying on local Calendar API automation.
 - Build the dashboard approval queue before enabling routine write actions.
 - Connect the Post-Gig queue and payout tracker to the dashboard entry form.
 - Add a scheduled health check for AgentMail, Band Sheet/calendar alignment, and website/Band Sheet alignment.
@@ -127,7 +126,8 @@ Known-contact acknowledgment emails may be automated once the Intake Phase tool 
 
 Unknown-contact replies must be drafted for Mike approval.
 
-Calendar entries remain Mike-approved until a later explicit approval flow is designed.
+Calendar entries are manual. Neon V2 may draft the exact entry and check for
+conflicts, but it does not write to Google Calendar.
 
 ## Experimental Local Model Policy
 
@@ -140,9 +140,10 @@ The local model starts with read-only tasks only:
 
 Current pilot:
 
-- Model server: local llama.cpp on `127.0.0.1:8080`
-- Model: `gemma-4-E4B-it-Q4_1.gguf`
-- Use `/completion` for digest tasks. The chat endpoint can spend output in `reasoning_content`, which makes normal `content` appear blank in scripts.
+- Model server: LM Studio on `127.0.0.1:1234`
+- API: OpenAI-compatible `/v1/chat/completions`
+- Default model: `gemma-4-e2b-it`; override with `NEON_LOCAL_MODEL` or
+  `--local-model`.
 - First fixture: `/Volumes/VADER/Manifold/Neon_Blonde/Venues/_Test Venues/Club Babaloo/gigs/2026-10-07/LOCAL_MODEL_DIGEST.md`
 
 It must not:

@@ -35,7 +35,7 @@ class ScoutAgentToolTests(unittest.TestCase):
                 writer.writerow(row)
             result = validate_scout_csv(path)
             self.assertEqual(result["status"], "needs_review")
-            self.assertIn("maybe", result["failure_reason"])
+            self.assertTrue(any("maybe" in e for e in result["row_errors"]))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.neonblonde.neonbotstein</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Volumes/VADER/Manifold/Neon_Blonde/Repos/Neon_v2/Telegram Bot/scripts/run_neonbotstein.sh</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/studio_hub/.hermes/logs/neonbotstein.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/studio_hub/.hermes/logs/neonbotstein.log</string>
+  <key>WorkingDirectory</key>
+  <string>/Volumes/VADER/Manifold/Neon_Blonde/Repos/Neon_v2/Telegram Bot</string>
+</dict>
+</plist>

@@ -57,7 +57,25 @@ class TestNeonHealthCheck(unittest.TestCase):
         self.assertEqual(calls, ["agentmail", "bandsheet"])
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(result["blocked_lanes"], 1)
+        self.assertEqual(result["needs_review_lanes"], 0)
         self.assertEqual(result["lanes"]["bandsheet"]["status"], "success")
+
+    def test_needs_review_makes_overall_status_needs_review(self):
+        def needs_review():
+            return {"status": "needs_review", "code": "LM_STUDIO_MODEL_MISSING"}
+
+        def passing():
+            return {"status": "success"}
+
+        result = run_health_checks(
+            {"lm_studio": needs_review, "dashboard": passing}
+        )
+
+        self.assertEqual(result["status"], "needs_review")
+        self.assertEqual(result["code"], "HEALTH_CHECKS_NEED_REVIEW")
+        self.assertEqual(result["blocked_lanes"], 0)
+        self.assertEqual(result["needs_review_lanes"], 1)
+        self.assertEqual(result["successful_lanes"], 1)
 
     def test_exception_is_converted_to_isolated_blocked_receipt(self):
         def broken():

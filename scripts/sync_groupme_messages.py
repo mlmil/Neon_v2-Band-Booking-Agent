@@ -6,8 +6,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 
-DEFAULT_SOURCE = Path("/Volumes/VADER/Neon_Blonde/GroupMeChats/messages")
-DEFAULT_DB = Path("/Volumes/VADER/Neon_Blonde/GroupMeChats/.groupme_db.json")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SOURCE = REPO_ROOT / "data" / "groupme" / "messages"
+DEFAULT_DB = REPO_ROOT / "data" / "groupme" / "groupme_db.json"
 
 
 def load_existing(db_path: Path):
@@ -65,6 +66,7 @@ def main():
             "created_at": msg.get("created_at"),
             "sender_id": msg.get("sender_id"),
             "group_id": msg.get("group_id"),
+            "group_name": msg.get("group_name"),
             "system": msg.get("system", False),
             "source_path": str(path),
         }

@@ -44,7 +44,8 @@ class PostGigQueueSyncTests(unittest.TestCase):
 
         self.assertEqual(row["queue_status"], "needs_closeout")
         self.assertIn("base pay", row["next_step"])
-        self.assertIn("tips", row["next_step"])
+        self.assertIn("tip jar", row["next_step"])
+        self.assertIn("Venmo", row["next_step"])
 
     def test_calendar_parser_uses_uid_and_pacific_start_and_end_times(self):
         ics = """BEGIN:VCALENDAR

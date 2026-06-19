@@ -1,0 +1,243 @@
+/* ============================================================
+   Spark Ai — Ai Foundations Design System
+   Colors + Type tokens
+   Derived from variations/v2-civic-grid.js
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ---------- DARK THEME (default) ---------- */
+:root,
+[data-theme="dark"] {
+  /* Surface */
+  --bg:            #0E0F11;  /* page */
+  --surface:       #17191C;  /* card */
+  --surface-inv:   #F2EFE6;  /* inverted card (bone) */
+
+  /* Foreground */
+  --fg:            #F2EFE6;  /* primary ink (bone) */
+  --fg-inv:        #0E0F11;  /* on inverted surface */
+  --fg-muted:      #8a8d92;  /* muted */
+  --fg-muted-2:    #c7cad0;  /* muted-strong */
+
+  /* Rules */
+  --rule:          #2a2d32;  /* 1px hairline */
+  --rule-soft:     #ffffff14;/* intra-card divider */
+
+  /* Accent — single-use amber */
+  --accent:        #E39A2B;
+  --accent-ink:    #0E0F11;  /* text on amber chip */
+
+  /* Participant avatar palette */
+  --av-amber:      #C67A17;
+  --av-navy:       #1f2d3d;
+  --av-tan:        #7a5a36;
+  --av-moss:       #45584d;
+}
+
+/* ---------- LIGHT THEME ---------- */
+[data-theme="light"] {
+  --bg:            #F6F4EF;
+  --surface:       #FFFFFF;
+  --surface-inv:   #111111;
+
+  --fg:            #111111;
+  --fg-inv:        #F6F4EF;
+  --fg-muted:      #6b6b66;
+  --fg-muted-2:    #3a3a36;
+
+  --rule:          #111111;
+  --rule-soft:     #11111126;
+
+  --accent:        #C67A17;
+  --accent-ink:    #F6F4EF;
+}
+
+/* ---------- TYPE FAMILIES ---------- */
+:root {
+  --font-display: 'Inter Tight', 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ---------- SPACING / LAYOUT TOKENS ---------- */
+:root {
+  --page-pad-x:   56px;
+  --section-pad-y: 72px;
+  --section-pad-y-lg: 80px;
+  --card-pad:     28px;
+  --gap-xs:       8px;
+  --gap-sm:       12px;
+  --gap:          20px;
+  --gap-lg:       24px;
+  --gap-xl:       32px;
+
+  --grid-cols:    12;
+  --grid-gutter:  24px;
+
+  --radius:       0;        /* CIVIC: square corners everywhere */
+  --border:       1px solid var(--rule);
+
+  --hit:          44px;     /* min interactive height */
+  --nav-h:        76px;
+
+  /* Motion — scarce and utilitarian */
+  --ease:         cubic-bezier(.2, .6, .2, 1);
+  --dur-quick:    120ms;
+  --dur:          180ms;
+}
+
+/* ---------- BASE ---------- */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- SEMANTIC TYPE ---------- */
+.h1, h1 {
+  font-family: var(--font-display);
+  font-size: 112px;
+  line-height: 0.92;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  margin: 0;
+}
+.h2, h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.h3, h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.h4, h4 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.lead {
+  font-family: var(--font-body);
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.p, p {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+.p-lg { font-size: 16px; line-height: 1.55; }
+.p-xl { font-size: 22px; line-height: 1.30; letter-spacing: -0.01em; font-weight: 400; }
+
+/* Mono label — the workhorse */
+.label, .mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  font-weight: 400;
+}
+.label--tight  { letter-spacing: 0.05em; }
+.label--loose  { letter-spacing: 0.08em; }
+.label--looser { letter-spacing: 0.10em; }
+.label--amber  { color: var(--accent); }
+.label--strong { color: var(--fg); font-weight: 500; }
+
+/* Pull-quote (italic amber) */
+.pullquote {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Wordmark helper: SPARK.Ai with amber period */
+.wordmark {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.wordmark .dot { color: var(--accent); }
+
+/* Code / inline mono */
+code, .code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* ---------- UTILITY ---------- */
+.rule { height: 1px; background: var(--rule); border: 0; }
+.rule-soft { height: 1px; background: var(--rule-soft); border: 0; }
+.card {
+  background: var(--surface);
+  border: var(--border);
+  padding: var(--card-pad);
+  border-radius: var(--radius);
+}
+.card--inverted {
+  background: var(--surface-inv);
+  color: var(--fg-inv);
+  border-color: var(--surface-inv);
+}
+
+/* Chips */
+.chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 0;
+}
+.chip--amber  { background: var(--accent); color: var(--accent-ink); }
+.chip--outline{ background: transparent; color: var(--fg); border: 1px solid var(--rule); font-weight: 500; }
+
+/* Amber CTA button */
+.btn-amber {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--accent);
+  padding: 8px 14px;
+  border-radius: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.btn-amber:hover,
+.btn-amber:focus-visible {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

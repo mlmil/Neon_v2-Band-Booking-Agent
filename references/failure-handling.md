@@ -38,7 +38,7 @@ next_step:
 
 | Failure | Status | Stop | Can Continue |
 |---|---|---|---|
-| Calendar unavailable, missing, or malformed | `BLOCKED_CALENDAR` | Venue Agent confirmation, Band Sheet publish | Scout research, read-only Band Sheet check, manual receipt draft |
+| Public calendar unavailable, missing, or malformed | `BLOCKED_CALENDAR` | Venue Agent confirmation, Band Sheet publish | Scout research, read-only Band Sheet check, manual receipt draft |
 | Venue name does not resolve | `NEEDS_VENUE_REVIEW` | Band Sheet publish, portal sharing | Create reconciliation receipt, list candidate venue matches |
 | Band Sheet mismatch | `BANDSHEET_MISMATCH` | Public accuracy claim, publish/deploy | Venue folder work, mismatch report, draft fix |
 | SMS-only confirmation | `UNCONFIRMED_COMMUNICATION` | Mark confirmed, update rate/date/time as truth | Log context, draft email asking for confirmation |
@@ -51,19 +51,16 @@ next_step:
 
 ## Protected Writes
 
-## Calendar Detail Fallback
+## Calendar Detail Handling
 
-Calendar list responses may omit fields that exist on the actual event, especially `location`.
-
-Before declaring `BLOCKED_CALENDAR` for a missing city/location, fetch the individual calendar event by ID and re-check:
+Neon V2 uses the public calendar feed without OAuth. Validate:
 
 - title / summary = venue name
 - location = city only
 - start = gig start time
 
-Example: `Ms Special ` on `2026-08-15T19:00:00-07:00` appeared in the list response without visible location, but the detailed event read returned `location: Goleta`. That is a valid Neon V2 calendar shape.
-
-Only block the calendar lane when the detailed event is also missing or malformed.
+If a required field is absent from the public feed, mark the event
+`NEEDS_VENUE_REVIEW`. Do not request Calendar OAuth as a fallback.
 
 ## Test Venue Rule
 
@@ -78,7 +75,6 @@ When either appears as the calendar event title:
 
 These must stop when the relevant verification lane is blocked, failed, or uncertain:
 
-- Google Calendar updates
 - Band Sheet publish/deploy
 - Venue-facing email send
 - Venue portal sharing

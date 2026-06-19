@@ -66,10 +66,13 @@ class AgentCompatibilityCheckTests(unittest.TestCase):
                     environ={},
                     run_network=False,
                 )
-                for agent in ("codex", "claude", "hermes")
+                for agent in ("codex", "claude", "gemini", "hermes")
             ]
 
-        self.assertEqual({result["agent"] for result in results}, {"codex", "claude", "hermes"})
+        self.assertEqual(
+            {result["agent"] for result in results},
+            {"codex", "claude", "gemini", "hermes"},
+        )
         self.assertTrue(all(result["club_babaloo"]["status"] == "success" for result in results))
 
     def test_club_babaloo_fixture_is_local_and_approval_gated(self):
