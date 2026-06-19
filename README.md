@@ -38,6 +38,30 @@ Neon V2 processes booking-related messages from Gmail, AgentMail, Telegram, and 
 
 Known contacts, unknown senders, incomplete details, possible date changes, and venue mismatches receive different handling. The system keeps a local record of what it saw and what still needs a person to decide.
 
+### Its own operational email
+
+Neon V2 has a dedicated email identity at **`neon_blonde@agentmail.to`**. From that inbox, the agent can reply to and coordinate with venue owners, private-event clients, rehearsal contacts, and local booking agents.
+
+For approved conversations, Neon V2 can:
+
+- maintain the context of an email thread
+- ask for missing dates, times, locations, production details, and payment terms
+- draft and send replies in the band's operational voice
+- negotiate logistics within human-approved boundaries
+- prepare agreements and contracts from confirmed terms
+- route deposits to the band's approved Venmo destination
+- track signatures, test payments, deposits, final copies, and unresolved discrepancies as separate states
+
+Important sends and consequential terms remain subject to human approval. A payment instruction or test transaction proves the payment route; it does not mark a deposit received until a band member confirms the actual funds.
+
+### Real-world example: a wedding booking
+
+For one Southern California wedding gig, a human band member supplied only a few lines of direction and the essential boundaries. Neon V2 handled nearly the entire operational conversation from there: it corresponded with the client, worked through the event details, negotiated the booking logistics, drafted the performance contract, coordinated the signed-copy workflow, and provided the band's approved Venmo route for the deposit.
+
+The agent also kept the contract and payment lanes separate. It tracked the signed agreement, recognized that a small test payment only verified the Venmo path, kept the real deposit open until human confirmation, and flagged a performance-time discrepancy instead of silently treating conflicting versions as settled.
+
+This is the intended operating model: minimal but decisive human input, substantial agent execution, and explicit human confirmation at the points where money, contractual truth, or source-of-truth records change.
+
 ### Availability intelligence
 
 A date is only reported as clear when it passes two independent checks:
