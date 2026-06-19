@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "neon-google-workspace": {
+      "command": "/Volumes/VADER/Google Auth/.venv/bin/python",
+      "args": [
+        "/Volumes/VADER/Google Auth/workspace_mcp.py"
+      ],
+      "cwd": "/Volumes/VADER/Google Auth",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

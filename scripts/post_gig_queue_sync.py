@@ -128,7 +128,7 @@ def build_queue_row(gig: QueueGig, *, now: datetime | None = None) -> dict[str, 
 
     if current_time >= end_at:
         status = "needs_closeout"
-        next_step = "Ask Mike for base pay received, tips, payment method, recipient, and amount still owed."
+        next_step = "Ask Mike for base pay received, tip jar, Venmo, payment method, recipient, and amount still owed."
     else:
         status = "scheduled"
         next_step = "Wait until the show ends."

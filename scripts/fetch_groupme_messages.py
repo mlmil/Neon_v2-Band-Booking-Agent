@@ -28,7 +28,7 @@ import urllib.request
 import urllib.error
 
 BASE_URL = "https://api.groupme.com/v3"
-DEFAULT_OUTPUT = Path("/Volumes/VADER/Neon_Blonde/GroupMeChats/messages")
+DEFAULT_OUTPUT = Path(__file__).resolve().parents[1] / "data" / "groupme" / "messages"
 TOKEN_FILE = Path.home() / ".neon_blonde" / "groupme_token"
 SKILL_DIR = Path(__file__).parent.parent
 SMTP_CONFIG = SKILL_DIR / "smtp_config.json"
@@ -37,8 +37,9 @@ SMTP_CONFIG = SKILL_DIR / "smtp_config.json"
 def load_token(arg_token=None):
     if arg_token:
         return arg_token
-    if os.environ.get("GROUPME_TOKEN"):
-        return os.environ["GROUPME_TOKEN"]
+    env_token = os.environ.get("GROUPME_TOKEN")
+    if env_token:
+        return env_token
     if TOKEN_FILE.exists():
         return TOKEN_FILE.read_text().strip()
     if SMTP_CONFIG.exists():

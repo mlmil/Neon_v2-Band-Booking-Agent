@@ -366,7 +366,141 @@ function Empty({ label }) {
   );
 }
 
+/* ====== 9 · GROUPME ACTIVITY ====== */
+function GroupMeActivity({ data, H, compact }) {
+  let rows = data.groupme_activity || [];
+  return (
+    <Panel id="groupme" title="GroupMe Activity" icon="mail" section="§ Internal comms" count={rows.length}
+      status="success" compact={compact}>
+      {rows.length === 0 && <Empty label="No recent operational messages" />}
+      {rows.map((m) => (
+        <Item key={m.id} status="success">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{m.sender} <span style={{color: 'var(--fg-muted)'}}>in {m.group}</span></div>
+              <Label size={10} style={{ display: 'block', marginTop: 2 }}>{relTime(new Date(m.timestamp * 1000).toISOString(), data.meta.now)} · ID: {m.id}</Label>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--fg-muted-2)', lineHeight: 1.45 }}>"{m.text}"</p>
+        </Item>
+      ))}
+    </Panel>
+  );
+}
+
+/* ====== 10 · APPROVAL QUEUE ====== */
+function ApprovalQueue({ data, H, hideClear, compact }) {
+  const items = [];
+  if (data.intake_receipts) data.intake_receipts.forEach(r => { if (r.status === 'needs_review') items.push({ id: r.id, type: 'Intake', title: r.venue, status: r.status, note: (r.missing || []).join(', ') || 'Review required' }); });
+  if (data.checks) data.checks.forEach(c => { if (c.status !== 'success') items.push({ id: c.id, type: 'Check', title: c.title, status: c.status, note: c.result }); });
+  if (data.venue_folders) data.venue_folders.forEach(v => { if (v.status === 'needs_review') items.push({ id: v.id, type: 'Folder', title: v.venue, status: v.status, note: v.note }); });
+  if (data.scout_leads) data.scout_leads.forEach(s => { if (s.status === 'needs_review') items.push({ id: s.id, type: 'Scout', title: s.venue, status: s.status, note: 'Review lead' }); });
+  if (data.post_gig_items) data.post_gig_items.forEach(p => { if (p.status === 'needs_review') items.push({ id: p.id, type: 'Payout', title: p.venue, status: p.status, note: p.notes || 'Review payout' }); });
+
+  return (
+    <Panel id="approvals" title="Approval Queue" icon="check" section="§ Master Queue" count={items.length}
+      status={items.length ? 'needs_review' : 'success'} compact={compact}>
+      {items.length === 0 && <Empty label="All clear" />}
+      {items.map((it, i) => (
+        <Item key={i} status={it.status}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <Label size={10} color="var(--accent)">{it.type}</Label>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: 'var(--fg)', marginTop: 2 }}>{it.title}</div>
+            </div>
+            <StatusChip status={it.status} />
+          </div>
+          <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 11.5, color: 'var(--fg-muted-2)', lineHeight: 1.45 }}>{it.note}</p>
+        </Item>
+      ))}
+    </Panel>
+  );
+}
+
+/* ====== 11 · AGENTMAIL THREADS ====== */
+function AgentMailThreads({ data, H, compact, setModal }) {
+  if (data.agentmail_threads && data.agentmail_threads.error) {
+     return <Panel id="agentmail_threads" title="AgentMail Threads" icon="mail" status="blocked" compact={compact}>
+        <Empty label={`AgentMail unavailable: ${data.agentmail_threads.error}`} />
+     </Panel>;
+  }
+  let rows = data.agentmail_threads || [];
+  return (
+    <Panel id="agentmail_threads" title="AgentMail Threads" icon="mail" section="§ Communications" count={rows.length}
+      status="success" compact={compact}>
+      {rows.length === 0 && <Empty label="No recent threads" />}
+      {rows.map((t) => {
+        let stColor = 'var(--fg)';
+        if (t.status === 'Needs reply') stColor = 'var(--status-bad)';
+        if (t.status === 'Waiting') stColor = 'var(--status-warn)';
+        if (t.status === 'Draft') stColor = 'var(--status-info)';
+
+        return (
+          <Item key={t.thread_id} status={t.status === 'Needs reply' ? 'needs_review' : 'success'} onClick={() => setModal({ kind: 'agentmail_thread', ctx: t })} clickable>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{t.subject}</div>
+                <Label size={10} style={{ display: 'block', marginTop: 2 }}>{t.latest_sender} · {t.message_count} msgs · {relTime(t.latest_timestamp, data.meta.now)}</Label>
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: stColor }}>{t.status}</div>
+            </div>
+            <p style={{ margin: 0, fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--fg-muted-2)', lineHeight: 1.45 }}>"{t.preview}"</p>
+          </Item>
+        );
+      })}
+    </Panel>
+  );
+}
+
+/* ====== 12 · AGENTMAIL THREAD MODAL ====== */
+function AgentMailThreadModal({ thread, now, onClose }) {
+  const [detail, setDetail] = React.useState(null);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    fetch('/api/agentmail/threads/' + thread.thread_id)
+      .then(res => res.json())
+      .then(d => {
+        if (d.error) setError(d.error);
+        else setDetail(d);
+      })
+      .catch(e => setError(e.toString()));
+  }, [thread.thread_id]);
+
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: 'var(--bg-panel)', borderRadius: 12, padding: 30, width: 700, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--border)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--fg)' }}>{thread.subject}</div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', fontSize: 24, padding: 0 }}>×</button>
+        </div>
+
+        {error ? (
+          <div style={{ color: 'var(--status-bad)', fontSize: 14 }}>{error}</div>
+        ) : !detail ? (
+          <div style={{ color: 'var(--fg-muted)', fontSize: 14 }}>Loading thread messages...</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {detail.messages.map((m, i) => (
+              <div key={m.message_id || i} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 15 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--fg)' }}>{m.sender}</div>
+                  <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{relTime(m.timestamp, now)}</div>
+                </div>
+                <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--fg-muted-2)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 Object.assign(window, {
   TodayStrip, IntakeQueue, BookingQueue, AccuracyChecks, VenueFolders,
-  MoneyQueue, AgentMailStatus, LocalModelStatus, ScoutLeads, CheckDot, Stat, Empty,
+  MoneyQueue, AgentMailStatus, LocalModelStatus, ScoutLeads, GroupMeActivity, ApprovalQueue, CheckDot, Stat, Empty,
+  AgentMailThreads, AgentMailThreadModal
 });

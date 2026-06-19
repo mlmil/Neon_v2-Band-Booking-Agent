@@ -192,7 +192,7 @@ Error policy:
 Neon Blonde uses GroupMe for all band communication.
 
 The workflow should:
-1. Read `/Volumes/VADER/Neon_Blonde/GroupMeChats/messages` for JSON exports for each GroupMe message.
+1. Read `data/groupme/messages/` for JSON exports for each GroupMe message.
 2. Update the communication database with new messages hourly.
 3. Preserve timestamps, sender names, and any thread context available in the JSON.
 4. Treat GroupMe as a source of truth for band communication and follow-up context.
@@ -213,7 +213,7 @@ Launch order:
 3. Continue with the requested booking or briefing task
 
 Mount check:
-- If `/Volumes/VADER/Neon_Blonde/GroupMeChats/messages` is missing, stop and tell Mike: `VADER is not mounted. Mount VADER and try again.`
+- If the Neon V2 repository is unavailable, stop and tell Mike to mount VADER.
 
 ## Availability Checking
 

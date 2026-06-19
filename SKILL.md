@@ -78,6 +78,21 @@ Match the ask exactly:
 
 **Voice memo rule**: When Mike starts dictating (gig payouts, dates, financials), capture quietly. Wait until he finishes. Confirm briefly, then save. Ambiguous numbers → mark TBD, don't interrupt.
 
+### 8. Post-Gig Payout Capture
+Mike has approved Telegram bot writes for post-gig payout capture. When he sends
+or dictates payout numbers after a show, write directly to the payout CSV:
+- `PAYOUT` = base pay received
+- `TIP_JAR` = cash tip jar
+- `VENMO` = Venmo tips
+
+Old ledger rows that only have `TIPS` are historical cash-tip rows. Preserve
+them by migrating `TIPS` into `TIP_JAR` and leaving `VENMO` blank.
+
+Reminder rule: after a past gig has been over for a few hours, email Mike and
+Alfred once per day until `PAYOUT`, `TIP_JAR`, and `VENMO` are filled. `$0.00`
+counts as filled. `VENMO` is required only for gigs on or after 2026-06-17;
+older rows may keep `VENMO` blank.
+
 ---
 
 ## Data Sources (Priority Order)
@@ -91,10 +106,9 @@ Match the ask exactly:
 
 ### 2. Neon Blonde Google Calendar
 - Member unavailability, open dates, scheduling context
-- Access via OAuth token at `~/.hermes/neon_oauth_token.json`
-- **Never pass scopes param** to `from_authorized_user_file()` — token embeds its own
-- Always fetch `creator.email` field — determines confirmation authority
-- If a calendar list response omits `location`, fetch the individual event detail before blocking. List responses can hide fields that exist on the full event.
+- Read from the public calendar ID/iCal feed. No Calendar OAuth or write access.
+- Treat fields present in the public feed as the available calendar contract.
+- If a required field is absent, mark it for review instead of adding OAuth.
 - Test venue rule: `Club Babaloo` and `Club Bobaloo` are test venue aliases. Treat them as test data, not real bookings, and route dry-run folder plans under `_Test Venues/Club Babaloo`.
 
 ### 3. Email (IMAP)
@@ -107,7 +121,9 @@ Match the ask exactly:
 - **Always convert UTC → Pacific** before grouping events by day
 
 ### 5. GroupMe
-- Exports from: `/Volumes/Drive_A/GroupMeChats/messages`
+- Exports from: `data/groupme/messages/`
+- Use the configured GroupMe API token to fetch current messages before syncing
+  local exports when live communication context is needed.
 
 ---
 
@@ -171,7 +187,7 @@ Trigger: "good morning" / "morning" / scheduled cron
 
 **Phase 1 — Gather**
 1. Run `python3 ~/.hermes/scripts/neon_monitor.py` (90-day events + member outs)
-2. Fetch detailed event times/locations/creators via inline OAuth (monitor script returns dates but not times)
+2. Fetch event times and locations from the public calendar feed
 3. Fetch Band Sheet JSON via `curl` (check freshness — if >4 days, flag staleness)
 4. Fetch Freshground iCal for upcoming rehearsals (convert UTC→Pacific, filter current year)
 
@@ -223,8 +239,9 @@ Follow the two-pass safety model above. Include member outs, gig conflicts, trav
 ### Member Out / Unavailability
 When Mike says "mark me out" or "mark [name] out":
 1. Confirm the date range
-2. Create calendar event with `[Name] Out` title on the specified dates
-3. Verify it doesn't conflict with confirmed gigs (if it does, flag immediately)
+2. Draft the exact manual calendar entry: `[Name] Out`
+3. Verify it doesn't conflict with confirmed gigs and flag any conflict
+4. Mike or a band member adds the event manually
 
 ### Rehearsal Workflow
 1. **Find dates**: Run `scripts/find_rehearsal_dates.py` for candidate slots
@@ -243,6 +260,40 @@ When researching a new venue:
 When Mike asks about Venue Agents, Scout Agent, Booking Pipeline, Neon V2 Dashboard, venue portals, local model pilot, or subagent boundaries, load `references/agent-ecosystem.md` first.
 
 When Mike asks about the Neon Blonde public website, WordPress, public shows, venue logos on the website, or website schedule sync, load `references/wordpress-show-sync.md` first.
+
+### Public Website Schedule Check
+Use this whenever Mike asks whether the public website is correct, automated,
+synced, or matching the Band Sheet. Do not verify the website against the Band
+Sheet alone; check the full public chain:
+
+```text
+Neon Blonde public calendar
+  -> Band Sheet JSON
+  -> hosted public website widget / WordPress homepage
+```
+
+Run both read-only checks:
+
+```bash
+python3 scripts/bandsheet_verification_report.py
+python3 scripts/website_verification_report.py
+```
+
+Interpretation:
+- `bandsheet_verification_report.py` checks public calendar gigs against the
+  Band Sheet JSON.
+- `website_verification_report.py` checks WordPress public show posts and the
+  rendered homepage against the Band Sheet JSON.
+- The website is healthy only when both checks succeed, or when any mismatch is
+  explained as an intentional public-display rule such as the homepage showing
+  only the next 8 public shows.
+- If the calendar check fails, report the calendar/Band Sheet mismatch first;
+  the website may be accurately reflecting stale or incomplete Band Sheet data.
+- If the Band Sheet/calendar check passes but the website check fails, treat it
+  as a website sync/rendering problem.
+- If the rendered homepage check fails after the hosted iframe migration, verify
+  the live page contains `public-shows-widget.html` and that the iframe height is
+  not clipped before changing WordPress content.
 
 Default routing:
 - Confirmed gig or calendar-triggered venue work → Venue Agent workflow
@@ -282,7 +333,9 @@ When any workflow partially fails, sources disagree, a write cannot be verified,
 Default rule: block only the unsafe lane. Keep read-only checks, local receipts, draft notes, and mismatch reports moving. Stop protected writes until the blocked lane is reviewed.
 
 ### GroupMe Sync
-Run `scripts/sync_groupme_messages.py` to ingest latest messages. Drive_A must be mounted.
+Run `scripts/fetch_groupme_messages.py` to fetch current messages, then
+`scripts/sync_groupme_messages.py` to ingest the local exports into
+`data/groupme/groupme_db.json`.
 
 ### AgentMail / Band Communication
 Send updates via AgentMail API. Config at `smtp_config.json`.
@@ -325,7 +378,6 @@ All code changes should be committed and pushed to keep machines in sync.
 | `references/external-calendars.md` | Freshground, other external iCal feeds |
 | `references/freshground-calendar.md` | UTC→Pacific parsing, edge cases |
 | `references/imap-patterns.md` | IMAP search patterns for contacts |
-| `references/oauth-token-maintenance.md` | Token refresh, scope upgrade, failure modes |
 | `references/rehearsal-gig-conflicts.md` | Rehearsal vs gig date overlap rules |
 | `references/rehearsal-email-template.md` | Mark's email template |
 | `references/telegram-bot-architecture.md` | @Neonbandman_bot setup |
@@ -337,7 +389,6 @@ All code changes should be committed and pushed to keep machines in sync.
 | `references/phillip-thomas-protocol.md` | Phillip contact, history, draft rules |
 | `references/venue-template.md` | Venue folder structure |
 | `references/venues.md` | Known venue notes and resolved venue/date discrepancies |
-| `references/oauth-token-failure-modes.md` | Calendar OAuth failure modes and Band Sheet fallback |
 | `references/session-8-may-26.md` | Fresh Band Sheet case study and OAuth failure example |
 | `references/gimp-harness-spec.md` | Venue template image-generation support |
 | `scripts/` | Automation scripts (monitor, calendar, rehearsal, GroupMe) |
@@ -347,23 +398,27 @@ All code changes should be committed and pushed to keep machines in sync.
 
 ## Implementation Notes
 
-- Python packages: `google-auth`, `google-api-python-client`, `google-auth-oauthlib`
-- OAuth token: `~/.hermes/neon_oauth_token.json` — never pass scopes param
-- Cron/automation: OAuth may fail silently — always fall back to inline OAuth if monitor returns 0 events
-- Calendar API: always request `creator` field; it determines confirmation authority
+- Google Workspace authentication is required only for Drive and Contacts.
+- Gmail intake uses read-only IMAP with `BODY.PEEK` and must not alter read state or labels.
+- Calendar reads use the public Neon Blonde calendar ID/iCal feed.
+- Do not request Calendar OAuth scopes or perform Calendar writes.
 - Multi-day events: check end-date boundary carefully — Band Sheet systematically truncates by 1 day
 - Venue Agent local planner: `python3 scripts/venue_agent_tool.py --title "Tonys Pizza" --location "Ventura" --start "2026-06-06T19:00:00"`
 - Intake email parser: `python3 scripts/intake_email_parser.py --text "Can we book M Special on August 15 at 7pm in Goleta?"`
 - Intake receipt writer: `python3 scripts/intake_receipt_tool.py --sender "booking@example.com" --subject "M Special August date" --source-date "Tue, 09 Jun 2026 10:00:00 -0700" --text "Can we book M Special on August 15 at 7pm in Goleta?"`
 - Supervised inbox receipt mode: `python3 scripts/monitor_inbox.py --write-intake-receipts` flags booking-related inbox messages and writes local Intake receipts without sending replies.
 - Local venue folder sync: `python3 scripts/local_venue_folder_sync.py --sync-calendar --use-local-model` creates `/Volumes/VADER/Manifold/Neon_Blonde/Venues/[Venue]/[Venue - YYYY-MM-DD]/` folders, local receipts, and one-time local model digest files. Existing digest files are not overwritten.
+- Local AI server: LM Studio at `http://127.0.0.1:1234`; digest requests use
+  `/v1/chat/completions`. Override the default model with `NEON_LOCAL_MODEL` or
+  `--local-model`.
 - Scout CSV validator: `python3 scripts/scout_agent_tool.py "/Volumes/VADER/Manifold/Neon_Blonde/Scout Agent/scout-leads.csv"`
 - Band Sheet verification checker: `python3 scripts/bandsheet_verification_report.py` compares the published Band Sheet JSON against the public Neon Blonde Google Calendar iCal feed. It requires no OAuth and should return `status: success` before trusting Band Sheet/calendar alignment.
 - Website verification checker: `python3 scripts/website_verification_report.py` compares the published Band Sheet JSON against WordPress public show posts. It should block with `WEBSITE_MISMATCH` when the public website is stale or wrong.
 - Contract flow classifier: `scripts/contract_flow.py` separates signed-contract receipt, test-payment confirmation, actual deposit receipt, and final-copy follow-up. Use it for private-event contract/dashboard states before marking payment complete.
 - Post-Gig queue sync: `python3 scripts/post_gig_queue_sync.py` writes `data/post_gig/queue.csv`, keeps future shows `scheduled`, and changes them to `needs_closeout` only after their calendar end time. A manually `closed` row stays closed.
-- Post-Gig payout tracker: `python3 scripts/post_gig_payout_tool.py --gig-id "tonys-2026-06-12" --venue "Tony's Pizza" --city "Ventura" --date "2026-06-12" --base-pay-expected 500 --base-pay-received 500 --tips-received 100 --payment-method Venmo --received-by Mike`. It writes `data/post_gig/payouts.csv`; use `--payment-status paid_complete` only after Mike explicitly confirms the full base payment.
-- Agent compatibility checker: `python3 scripts/agent_compatibility_check.py --agent codex|claude|hermes` verifies shared skill access, local paths, public network access, credential parity, and the safe Club Babaloo fixture without exposing secret values.
+- Post-Gig payout tracker: `python3 scripts/post_gig_payout_tool.py --venue "Tony's Pizza" --city "Ventura" --date "2026-06-12" --base-pay-received 500 --tips-received 100`. It upserts a row to the authoritative 5-column administrative payout CSV.
+- Payout CSV Sync: `python3 scripts/payout_csv_sync.py` synchronizes legacy Numbers rows and calendar gigs into the administrative payout CSV.
+- Agent compatibility checker: `python3 scripts/agent_compatibility_check.py --agent codex|claude|gemini|hermes` verifies shared skill access, local paths, public network access, credential parity, and the safe Club Babaloo fixture without exposing secret values.
 - Primary Neon Blonde Venmo: `@neonblondeband`. Use for payment instructions only when Mike approves sending payment details; never mark payment complete without Mike confirming actual amount received.
 - AgentMail health checker: `python3 scripts/agentmail_health_check.py` verifies the active key can see `neon_blonde@agentmail.to` without exposing the key. Use `--send-test-to` only when an explicit live send test is needed.
 - AgentMail send wrapper: `python3 scripts/agentmail_send.py --to "..." --subject "..." --text "..." --fallback-gmail-draft` runs the health check first, sends from `neon_blonde@agentmail.to`, signs as `- Neon V2`, returns a safe receipt, and emits a Gmail draft payload if AgentMail is blocked.

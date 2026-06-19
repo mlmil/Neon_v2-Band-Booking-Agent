@@ -69,18 +69,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetch('/api/post-gig')
+    fetch('/api/data')
       .then(res => {
         if (!res.ok) throw new Error('Server error');
         return res.json();
       })
-      .then(items => {
-        setData(d => { const n = JSON.parse(JSON.stringify(d)); n.post_gig_items = items; return n; });
+      .then(liveData => {
+        setData(liveData);
       })
-      .catch(() => {
-        toast('Local server unavailable (Post-Gig data blocked)', 'bad');
+      .catch((e) => {
+        console.error(e);
+        toast('Local server unavailable. Showing mock/fallback data.', 'bad');
       });
   }, [toast]);
+
   const addLog = useCallback((msg, kind = 'safe') => {
     setLog((p) => [{ t: new Date().toISOString(), kind, msg }, ...p]);
   }, []);
@@ -122,11 +124,11 @@ function App() {
           toast('Payout entry saved locally');
           addLog('Saved payout for ' + p.venue + ' — base $' + (p.base_pay||0) + ', tips $' + (p.tips||0) + '.');
           setModal(null);
-          return fetch('/api/post-gig');
+          return fetch('/api/data');
         })
         .then(res => res.json())
-        .then(items => {
-          setData(d => { const n = JSON.parse(JSON.stringify(d)); n.post_gig_items = items; return n; });
+        .then(liveData => {
+          setData(liveData);
         })
         .catch(err => {
           toast('Failed to save payout', 'bad');
@@ -226,7 +228,9 @@ function App() {
 
   // panel elements keyed for layout reuse
   const panels = {
+    approvals:  <div data-anchor="panel-approvals"><ApprovalQueue data={data} H={H} hideClear={hc} compact={cp} /></div>,
     intake:     <div data-anchor="panel-intake"><IntakeQueue data={data} H={H} hideClear={hc} compact={cp} /></div>,
+    agentmail_threads: <div data-anchor="panel-agentmail-threads"><AgentMailThreads data={data} H={H} compact={cp} setModal={setModal} /></div>,
     booking:    <div data-anchor="panel-booking"><BookingQueue data={data} H={H} hideClear={hc} compact={cp} /></div>,
     checks:     <div data-anchor="panel-checks"><AccuracyChecks data={data} H={H} compact={cp} /></div>,
     folders:    <div data-anchor="panel-folders"><VenueFolders data={data} H={H} hideClear={hc} compact={cp} /></div>,
@@ -234,6 +238,7 @@ function App() {
     agentmail:  <div data-anchor="panel-agentmail"><AgentMailStatus data={data} H={H} compact={cp} /></div>,
     localmodel: <div data-anchor="panel-localmodel"><LocalModelStatus data={data} H={H} compact={cp} /></div>,
     scout:      <div data-anchor="panel-scout"><ScoutLeads data={data} H={H} hideClear={hc} compact={cp} /></div>,
+    groupme:    <div data-anchor="panel-groupme"><GroupMeActivity data={data} H={H} compact={cp} /></div>,
   };
 
   return (
@@ -270,6 +275,8 @@ function App() {
       {modal && modal.kind === 'draft' && <DraftModal ctx={modal.ctx} onClose={() => setModal(null)} act={H.act} agentmailDown={agentmailDown} />}
       {modal && modal.kind === 'note' && <NoteModal ctx={modal.ctx} onClose={() => setModal(null)} act={H.act} />}
       {modal && modal.kind === 'gig' && <GigDetailModal gig={modal.ctx} data={data} onClose={() => setModal(null)} H={H} />}
+      {modal && modal.kind === 'agentmail_thread' && <AgentMailThreadModal thread={modal.ctx} now={data.meta.now} onClose={() => setModal(null)} />}
+
       {confirm && <ConfirmModal data={confirm} onClose={() => setConfirm(null)} onConfirm={confirm.onConfirm} />}
 
       {/* ACTIVITY LOG drawer */}
@@ -344,8 +351,8 @@ function Swimlanes({ panels }) {
   return (
     <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="nb-swim">
-        <div style={col}><LaneLabel n="01" t="Intake" />{panels.intake}{panels.scout}</div>
-        <div style={col}><LaneLabel n="02" t="Booking & Verification" />{panels.booking}{panels.checks}{panels.folders}</div>
+        <div style={col}><LaneLabel n="01" t="Intake" />{panels.approvals}{panels.intake}{panels.agentmail_threads}{panels.scout}</div>
+        <div style={col}><LaneLabel n="02" t="Booking & Verification" />{panels.booking}{panels.checks}{panels.folders}{panels.groupme}</div>
         <div style={col}><LaneLabel n="03" t="Post-Gig & Systems" />{panels.money}{panels.agentmail}{panels.localmodel}</div>
       </div>
     </div>

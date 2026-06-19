@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 from scripts.agentmail_health_check import run_health_check as agentmail_check
 from scripts.bandsheet_verification_report import run_live_check as bandsheet_check
 from scripts.dashboard_server import get_post_gig_data
+from scripts.lm_studio_health_check import run_health_check as lm_studio_check
 from scripts.website_verification_report import run_live_check as website_check
 
 
@@ -47,7 +48,7 @@ def dashboard_health_check(
     *,
     dashboard_dir: Path = REPO_ROOT / "dashboard",
     queue_path: Path = REPO_ROOT / "data" / "post_gig" / "queue.csv",
-    payouts_path: Path = REPO_ROOT / "data" / "post_gig" / "payouts.csv",
+    payouts_path: Path = Path("/Volumes/VADER/Manifold/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/neon-blonde_Payouts 2026.csv"),
 ) -> dict:
     required_files = [
         dashboard_dir / "index.html",
@@ -83,6 +84,7 @@ def default_checks() -> dict[str, Check]:
         "bandsheet": bandsheet_check,
         "website": website_check,
         "dashboard": dashboard_health_check,
+        "lm_studio": lm_studio_check,
     }
 
 
@@ -105,13 +107,28 @@ def run_health_checks(checks: dict[str, Check] | None = None) -> dict:
     successful = sum(
         result.get("status") == "success" for result in lane_results.values()
     )
-    blocked = len(lane_results) - successful
+    blocked = sum(
+        result.get("status") == "blocked" for result in lane_results.values()
+    )
+    needs_review = len(lane_results) - successful - blocked
+
+    if blocked > 0:
+        overall_status = "blocked"
+        overall_code = "HEALTH_CHECKS_BLOCKED"
+    elif needs_review > 0:
+        overall_status = "needs_review"
+        overall_code = "HEALTH_CHECKS_NEED_REVIEW"
+    else:
+        overall_status = "success"
+        overall_code = "ALL_HEALTH_CHECKS_OK"
+
     return {
-        "status": "success" if blocked == 0 else "blocked",
-        "code": "ALL_HEALTH_CHECKS_OK" if blocked == 0 else "HEALTH_CHECKS_BLOCKED",
+        "status": overall_status,
+        "code": overall_code,
         "checked_at": datetime.now(PACIFIC).isoformat(),
         "successful_lanes": successful,
         "blocked_lanes": blocked,
+        "needs_review_lanes": needs_review,
         "lanes": lane_results,
         "protected_writes_performed": 0,
         "credential_values_exposed": False,

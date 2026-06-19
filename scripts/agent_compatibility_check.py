@@ -17,7 +17,7 @@ from scripts.venue_agent_tool import CalendarEvent, build_folder_plan
 
 
 DEFAULT_MANIFEST = REPO_ROOT / "config" / "credential-manifest.json"
-VALID_AGENTS = {"codex", "claude", "hermes"}
+VALID_AGENTS = {"codex", "claude", "gemini", "hermes", "antigravity"}
 
 
 def _load_shared_environment(path: Path, environ: dict[str, str]) -> dict[str, str]:

@@ -166,12 +166,14 @@ Public data shown:
         ["cruisery", "https://neonblonde.band/wp-content/uploads/2025/05/Cruisery.jpg"],
         ["fess parker", "https://neonblonde.band/wp-content/uploads/2025/02/Fess_Parker.png"],
         ["leashless", "https://neonblonde.band/wp-content/uploads/2025/05/Leashless.jpg"],
-        ["m special", "https://neonblonde.band/wp-content/uploads/2025/09/May02-MSpecial.jpg"],
-        ["ms special", "https://neonblonde.band/wp-content/uploads/2025/09/May02-MSpecial.jpg"],
-        ["private", "https://neonblonde.band/wp-content/uploads/2024/09/Logo-24-Stack_Blk.png"],
-        ["wedding", "https://neonblonde.band/wp-content/uploads/2024/09/Logo-24-Stack_Blk.png"],
-        ["fox wine", "https://neonblonde.band/wp-content/uploads/2024/09/Logo-24-Stack_Blk.png"],
-        ["santa barbara yacht club", "https://neonblonde.band/wp-content/uploads/2024/09/Logo-24-Stack_Blk.png"]
+        ["m special", "https://neonblonde.band/wp-content/uploads/2025/02/MSpecial.png"],
+        ["ms special", "https://neonblonde.band/wp-content/uploads/2025/02/MSpecial.png"],
+        ["tony", "https://neonblonde.band/wp-content/uploads/2026/04/tonys-pizzaria-logo.png"],
+        ["topa topa", "https://neonblonde.band/wp-content/uploads/2026/04/topa-topa-logo.png"],
+        ["fox wine", "https://neonblonde.band/wp-content/uploads/2026/04/topa-topa-logo.png"],
+        ["santa barbara yacht club", "https://neonblonde.band/wp-content/uploads/2025/06/SB_Yacht_Club.png"],
+        ["private", "https://neonblonde.band/wp-content/uploads/2023/08/Neon_Blonde_Logo.jpg"],
+        ["wedding", "https://neonblonde.band/wp-content/uploads/2023/08/Neon_Blonde_Logo_2.png"]
       ];
 
       const hiddenPatterns = [
@@ -189,13 +191,13 @@ Public data shown:
       }
 
       function parseGig(line) {
-        const match = line.match(/^[A-Z]{3}\s+(\d{1,2})-(\d{1,2})-(\d{4})\s+@([0-9:]+[AP]M)\s+—\s+(.+)$/);
+        const match = line.match(/^[A-Z]{3}\s+(\d{1,2})-(\d{1,2})-(\d{4})\s+@([0-9:]+[AP]M)\s+(.+)$/);
         if (!match) return null;
         const month = Number(match[1]);
         const day = Number(match[2]);
         const year = Number(match[3]);
         const time = match[4].toLowerCase();
-        const label = match[5].trim();
+        const label = match[5].replace(/^[^A-Za-z0-9]+/, "").trim();
         const pieces = label.split(",");
         const city = pieces.length > 1 ? pieces.pop().trim() : "";
         const venue = pieces.join(",").trim() || label;
@@ -243,7 +245,7 @@ Public data shown:
             })
             .map(parseGig)
             .filter(Boolean)
-            .slice(0, 12);
+            .slice(0, 8);
 
           grid.innerHTML = gigs.length
             ? gigs.map(cardFor).join("")

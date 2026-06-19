@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -19,7 +20,9 @@ from scripts.venue_agent_tool import normalize_venue_name
 
 
 VENUES_ROOT = Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues")
-DEFAULT_LOCAL_MODEL_URL = "http://127.0.0.1:8080/completion"
+DEFAULT_LOCAL_MODEL_URL = "http://127.0.0.1:1234/v1/chat/completions"
+DEFAULT_LOCAL_MODEL = os.environ.get("NEON_LOCAL_MODEL", "gemma-4-e2b-it")
+LOCAL_MODEL_TIMEOUT_SECONDS = 120
 TEST_VENUE_ALIASES = {"club babaloo", "club bobaloo"}
 VENUE_TITLE_ALIASES = {
     "gig at fig mountain brewing": "Fig Mountain",
@@ -116,12 +119,27 @@ def build_local_model_prompt(gig: LocalGig) -> str:
     )
 
 
-def request_local_model_digest(gig: LocalGig, model_url: str = DEFAULT_LOCAL_MODEL_URL) -> str:
-    payload = json.dumps({"prompt": build_local_model_prompt(gig), "n_predict": 350}).encode("utf-8")
+def request_local_model_digest(
+    gig: LocalGig,
+    model_url: str = DEFAULT_LOCAL_MODEL_URL,
+    *,
+    model: str = DEFAULT_LOCAL_MODEL,
+) -> str:
+    payload = json.dumps(
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": build_local_model_prompt(gig)}],
+            "max_tokens": 350,
+            "temperature": 0.2,
+        }
+    ).encode("utf-8")
     request = urllib.request.Request(model_url, data=payload, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=20) as response:
+    with urllib.request.urlopen(request, timeout=LOCAL_MODEL_TIMEOUT_SECONDS) as response:
         data = json.loads(response.read().decode("utf-8"))
-    return str(data.get("content") or data.get("response") or "").strip()
+    choices = data.get("choices") or []
+    if not choices:
+        return ""
+    return str(choices[0].get("message", {}).get("content") or "").strip()
 
 
 def write_local_model_file(
@@ -130,13 +148,14 @@ def write_local_model_file(
     *,
     use_local_model: bool = False,
     model_url: str = DEFAULT_LOCAL_MODEL_URL,
+    model: str = DEFAULT_LOCAL_MODEL,
 ) -> Path:
     path = gig_folder / "LOCAL_MODEL_DIGEST.md"
     if path.exists():
         return path
     if use_local_model:
         try:
-            digest = request_local_model_digest(gig, model_url)
+            digest = request_local_model_digest(gig, model_url, model=model)
             if digest:
                 path.write_text(digest + "\n", encoding="utf-8")
                 return path
@@ -166,6 +185,7 @@ def sync_local_gig_folder(
     write_model_file: bool = True,
     use_local_model: bool = False,
     model_url: str = DEFAULT_LOCAL_MODEL_URL,
+    model: str = DEFAULT_LOCAL_MODEL,
 ) -> dict:
     venues_root.mkdir(parents=True, exist_ok=True)
     venue_name = clean_calendar_venue_title(gig.venue)
@@ -189,7 +209,13 @@ def sync_local_gig_folder(
 
     model_path = None
     if write_model_file:
-        model_path = write_local_model_file(gig, gig_folder, use_local_model=use_local_model, model_url=model_url)
+        model_path = write_local_model_file(
+            gig,
+            gig_folder,
+            use_local_model=use_local_model,
+            model_url=model_url,
+            model=model,
+        )
 
     return {
         "status": "needs_review" if created_venue_folder else "success",
@@ -237,6 +263,7 @@ def main() -> int:
     parser.add_argument("--venues-root", default=str(VENUES_ROOT))
     parser.add_argument("--use-local-model", action="store_true")
     parser.add_argument("--local-model-url", default=DEFAULT_LOCAL_MODEL_URL)
+    parser.add_argument("--local-model", default=DEFAULT_LOCAL_MODEL)
     args = parser.parse_args()
 
     if args.sync_calendar:
@@ -252,6 +279,7 @@ def main() -> int:
             Path(args.venues_root),
             use_local_model=args.use_local_model,
             model_url=args.local_model_url,
+            model=args.local_model,
         )
         for gig in gigs
     ]
