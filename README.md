@@ -10,7 +10,7 @@
 
 ![Neon V2 agentic workflow](docs/images/neon-v2-agentic-workflow.png)
 
-Neon V2 is a supervised operations agent built for **Neon Blonde**, a five-member band based in Ventura, California, performing up and down the Southern California coast.
+Neon V2 is a supervised **AI booking and management agent** built for **Neon Blonde**, a five-member band based in Ventura, California, performing up and down the Southern California coast.
 
 Running an active band means coordinating far more than a set list. Booking inquiries arrive through email and messages. Five people have jobs, travel constraints, unavailable dates, rehearsals, equipment, and changing arrival times. Venue details must stay aligned across calendars, the Band Sheet, local files, public show listings, and band communication. After each show, payouts and multiple types of tips still need to be closed out.
 
