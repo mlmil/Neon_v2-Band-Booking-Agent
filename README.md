@@ -88,6 +88,57 @@ Neon V2 cross-references member availability, booked shows, travel constraints, 
 
 The local dashboard consolidates operational status across booking intake, gig records, verification checks, post-gig queues, and agent health. Scheduled read-only health checks isolate failures so one broken data source does not silently corrupt another workflow.
 
+## Gig Scout Agent: Finding the Next Opportunity
+
+![Gig Scout Agent venue-discovery workflow](docs/images/gig-scout-agent-workflow.png)
+
+The **Gig Scout Agent** is Neon V2's venue-discovery and lead-qualification agent. Internal repository files may refer to it by the shorter name `Scout Agent`.
+
+Gig Scout works before a venue becomes an active Neon Blonde booking. It searches public sources for suitable clubs, festivals, municipal events, private clubs, and other performance opportunities across:
+
+- Ventura County
+- Santa Barbara County
+- Los Angeles and the San Fernando Valley
+- the Central Coast
+
+The agent studies public venue calendars, venue announcements, local event listings, reviews, photos, capacity indicators, and bookings by similar bands. It turns those signals into structured prospects rather than handing the band an unfiltered list of search results.
+
+For each lead, Gig Scout can:
+
+- identify the venue, city, region, and likely gig type
+- preserve the public source and date last checked
+- research booking contacts and available public contact channels
+- note similar bands that have appeared there
+- evaluate audience, production, location, capacity, demand, and historical fit
+- calculate a lead score from `0` to `100`
+- assign a clear status and next action
+- surface stale records and missing research
+- produce a weekly shortlist of the strongest opportunities
+
+### Human review and agent handoff
+
+Gig Scout does not automatically contact venues. It uses public sources only, respects the do-not-contact list, and sends its best prospects to a human review gate.
+
+The workflow is:
+
+```text
+Venue Discovery
+      ↓
+Public-Source Research
+      ↓
+Fit and Lead Scoring
+      ↓
+Human Review
+      ↓
+Booking Pipeline
+      ↓
+Venue Agent
+```
+
+Once Mike approves a qualified prospect, the **Booking Pipeline** owns outreach drafts, follow-up status, negotiation progress, and lead ownership. If the opportunity becomes a committed gig, it graduates to the **Venue Agent**, which owns the confirmed venue profile, gig records, reconciliation, logistics, communication, and post-gig follow-through.
+
+Gig Scout does not own confirmed gigs, payouts, Band Sheet publishing, or autonomous outreach. Its job is to find strong opportunities, explain why they are worth pursuing, and deliver clean research to the next agent.
+
 ### Telegram, GroupMe, and agent handoffs
 
 Neon V2 brings band information into conversational tools without creating a second source of truth. Telegram Bot and Gig Copilot provide focused operational access, while GroupMe synchronization preserves current band communication context for authorized workflows.
@@ -194,6 +245,8 @@ Confirmed Gig Operations     Draft / Review Queue
 | `references/` | Availability, booking, rehearsal, Band Sheet, communication, and failure-handling rules |
 | `scripts/` | Deterministic intake, verification, monitoring, payout, folder, and health tools |
 | `dashboard/` | Local operational dashboard |
+| `schemas/scout_leads_schema.json` | Gig Scout lead fields, statuses, sources, regions, and scoring constraints |
+| `scripts/scout_agent_tool.py` | Gig Scout CSV validation, scoring, and stale-lead checks |
 | `Telegram Bot/` | NeonBotstein conversational operations and booking watcher |
 | `Gig Copilot Bot/` | Day-of-show coordination agent and broadcast tools |
 | `launch_agents/` | macOS scheduled automation definitions |
