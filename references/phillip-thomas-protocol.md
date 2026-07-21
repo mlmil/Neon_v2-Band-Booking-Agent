@@ -31,6 +31,6 @@ If a date is promising but uncertain, say what needs Mike's confirmation.
 
 ## Telegram
 
-`@Neonbandman_bot` routes through the Hermes gateway. Do not build a separate polling script.
+`@neonblondebot` routes through the Hermes gateway. Do not build a separate polling script.
 
 Mike's Telegram chat ID is stored in the gateway configuration; do not expose it unless needed for debugging.

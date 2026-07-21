@@ -1,41 +1,41 @@
-# Telegram Bot Architecture — Neon @Neonbandman_bot
+# Telegram Bot Architecture — Neon V2 and Co-Pilot
 
-## Design Decision: Direct API calls vs Hermes subprocess
+## Current Setup (July 2026)
 
-**Tried first**: `hermes chat -q "<query>" -s Neon_v2 -Q` spawned as a Python subprocess.
+The old @Neonbandman_bot (ID 8502223057) has been **deleted**. All remnants
+(old token files, launchd plists, logs, scripts) were cleaned up on 2026-07-07.
 
-**Result**: Hung indefinitely. The Hermes CLI session tries to connect to MCP servers (Desktop Commander, CamoFox browser, Google Workspace MCPs) that aren't available in the subprocess context. The subprocess call never returned.
+The active bots are **@neonblondebot** (`neon-v2`) and **@GigCopilotNeon_Bot** (`neon-co_pilot`).
 
-**Working approach**: Standalone Python script that makes direct API calls:
+- Tokens: profile-local `TELEGRAM_BOT_TOKEN` values in each Hermes profile `.env`
+- Connected through profile-specific Hermes Gateway launchd services
+- Group chats: Full read access (privacy mode disabled via BotFather)
+- Authorized Neon Blonde group: `-1004424634571`
+- Ordinary unmentioned group messages are observed as context; routine chatter does not trigger a reply.
+
+## Hermes Gateway
+
+The bot runs as part of the Hermes gateway, not as a standalone script.
+- Launchd services: `ai.hermes.gateway-neon-v2` and `ai.hermes.gateway-neon-co_pilot`
+- Gateway profiles: `neon-v2` and `neon-co_pilot`
+- Env vars: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USERS`
+
+## Direct API Calls (for standalone scripts)
 
 | Service | Method | Credentials |
 |---|---|---|
-| Neon Blonde calendar | `google.oauth2.credentials.Credentials` + `googleapiclient` | `~/.hermes/neon_oauth_token.json` |
+| Neon Blonde calendar | Fetch the public iCal feed | None (public, read-only) |
 | Mark's Freshground calendar | Fetch public iCal feed + parse VEVENT blocks | None (public feed) |
-| Gmail IMAP | `imaplib.IMAP4_SSL` | `~/.hermes/skills/Neon_v2/smtp_config.json` (app password) |
-| AgentMail send | REST API `POST /v0/inboxes/{id}/messages/send` | `AGENTMAIL_API_KEY` from `~/.zshenv` |
-| Telegram | Bot API `api.telegram.org/bot{token}/...` | `~/.hermes/secure/neon_bot_token.txt` |
+| Gmail IMAP | `imaplib.IMAP4_SSL` with `BODY.PEEK` | `$NEON_SMTP_CONFIG` (app password) |
+| Telegram | Hermes Gateway / Bot API | Profile-local `TELEGRAM_BOT_TOKEN` |
 
-## Launchd Setup
+## Operational Contradiction Monitoring
 
-- Plist: `~/Library/LaunchAgents/com.neonblonde.bot.plist`
-- Uses `/opt/homebrew/bin/python3` (homebrew, not macOS system Python)
-- `-u` flag for unbuffered stdout
-- `KeepAlive` = true (auto-restart on crash)
-- `RunAtLoad` = true (auto-start on boot)
-- Logs to `~/.hermes/logs/neon_bot.log` (both stdout and stderr)
-
-## Telegram Polling Details
-
-- Long-poll with `timeout=30` (reduces empty responses)
-- Poll interval: 5 seconds between request cycles
-- Offset tracking via `~/.hermes/neon_bot_state.json`
-- Send `sendChatAction("typing")` before processing long requests
-- Markdown parsing: try with `parse_mode="Markdown"` first, fall back to plain text on 400 error
+Load `communications-triage.md` for the active monitoring contract. The bot compares operational claims in the authorized group against the published Band Sheet. It remains silent on routine chatter and alerts when it sees a time, date, venue, cancellation, money, availability, or logistics claim that conflicts with the current source of truth or needs Mike's action.
 
 ## Pitfalls Encountered
 
 1. **Hermes subprocess**: Don't do it. MCP tools won't connect. Use direct API calls.
-2. **Python version**: launchd uses /opt/homebrew/bin/python3 (3.14). System Python 3.9 has google-auth deprecation warnings.
-3. **Multiple stale processes**: `hermes` processes from previous sessions accumulate. Kill them with `pkill -f hermes` before debugging.
-4. **Telegram Markdown**: Unmatched `*` or `_` causes 400 errors. Always catch and retry without parse_mode.
+2. **Multiple services**: Inspect `hermes gateway list` and restart only the affected profile gateway.
+3. **Telegram Markdown**: Unmatched `*` or `_` causes 400 errors. Always catch and retry without parse_mode.
+4. **Old bot cleanup**: If migrating bots, delete old token files from `~/.hermes/secure/`, remove old launchd plists, and update all reference docs. The state DB may retain old bot IDs but won't cause issues.

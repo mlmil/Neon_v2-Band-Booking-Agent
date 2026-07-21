@@ -127,6 +127,44 @@ class PostGigReminderTests(unittest.TestCase):
         self.assertEqual(receipt["receipt"]["status"], "dry_run")
         self.assertFalse(state.exists())
 
+    def test_missing_ledger_suppresses_reminders(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            queue = root / "queue.csv"
+            ledger = root / "missing-ledger.csv"
+            state = root / "state.json"
+            with queue.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["gig_id", "venue", "city", "date", "start_at", "end_at", "queue_status"],
+                )
+                writer.writeheader()
+                writer.writerow(
+                    {
+                        "gig_id": "tonys",
+                        "venue": "Tony's Pizza",
+                        "city": "Ventura",
+                        "date": "2026-06-12",
+                        "start_at": "2026-06-12T19:00:00-07:00",
+                        "end_at": "2026-06-12T22:00:00-07:00",
+                        "queue_status": "needs_closeout",
+                    }
+                )
+
+            receipt = run_reminders(
+                queue_path=queue,
+                ledger_path=ledger,
+                state_path=state,
+                refresh=False,
+                dry_run=False,
+                now=datetime(2026, 6, 13, 9, 0, tzinfo=PACIFIC),
+            )
+
+        self.assertEqual(receipt["status"], "blocked")
+        self.assertEqual(receipt["code"], "PAYOUT_LEDGER_MISSING")
+        self.assertEqual(receipt["sent"], 0)
+        self.assertFalse(state.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

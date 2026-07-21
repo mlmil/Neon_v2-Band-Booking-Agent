@@ -11,7 +11,8 @@ from pathlib import Path
 import re
 
 
-DEFAULT_LEDGER = Path("/Volumes/VADER/Manifold/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/neon-blonde_Payouts 2026.csv")
+DRIVE_ROOT = Path(os.environ.get("NEON_DRIVE_ROOT", Path(__file__).resolve().parents[1])).expanduser()
+DEFAULT_LEDGER = DRIVE_ROOT / "Administrative" / "PAYOUT TRACKING SPREADSHEET" / "neon-blonde_Payouts 2026.csv"
 FIELDNAMES = [
     "VENUE",
     "CITY",
@@ -61,6 +62,7 @@ def normalize_ledger_row(row: dict[str, str]) -> dict[str, str]:
 def normalize_venue(value: str) -> str:
     v = value.lower().strip()
     v = v.replace("'", "").replace("&", "and")
+    v = v.replace("_", " ")
     v = re.sub(r"[^\w\s]", "", v)
     v = re.sub(r"\s+", " ", v).strip()
     aliases = {
@@ -73,10 +75,13 @@ def normalize_venue(value: str) -> str:
         "harrys nightclub": "harrys",
         "fox wine co topa topa": "fox wine",
         "fox wine company": "fox wine",
+        "fox wine co": "fox wine",
         "fig mountain sb": "fig mountain",
         "fig mt los olivos": "fig mountain",
         "santa barbara yacht club": "yacht club",
         "fess parkers": "fess parker",
+        "party": "private party",
+        "private party marty the kiwis house": "private party",
     }
     return aliases.get(v, v)
 

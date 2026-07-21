@@ -37,6 +37,13 @@ def _source_available(source: dict, environ: dict[str, str]) -> bool:
     source_type = source.get("type")
     if source_type == "env":
         return bool(environ.get(source.get("name", "")))
+    if source_type == "env_path":
+        value = environ.get(source.get("name", ""), "")
+        if not value:
+            return False
+        path = Path(value).expanduser()
+        kind = source.get("kind", "file")
+        return path.is_dir() if kind == "dir" else path.is_file()
     path = Path(source.get("path", ""))
     if not path.is_absolute():
         path = REPO_ROOT / path
@@ -59,8 +66,8 @@ def check_credential(credential: dict, environ: dict[str, str] | None = None) ->
     available_sources = []
     for source in sources:
         if _source_available(source, environment):
-            if source.get("type") == "env":
-                available_sources.append({"type": "env", "name": source.get("name")})
+            if source.get("type") in {"env", "env_path"}:
+                available_sources.append({"type": source.get("type"), "name": source.get("name")})
             else:
                 available_sources.append({"type": source.get("type"), "path": source.get("path")})
     return {
@@ -121,7 +128,10 @@ def run_compatibility_check(
     environment = dict(os.environ if environ is None else environ)
     shared_env_value = manifest.get("shared_environment_file")
     if shared_env_value:
-        environment = _load_shared_environment(Path(shared_env_value), environment)
+        shared_env_path = Path(shared_env_value).expanduser()
+        if not shared_env_path.is_absolute():
+            shared_env_path = REPO_ROOT / shared_env_path
+        environment = _load_shared_environment(shared_env_path, environment)
 
     credentials = [
         check_credential(credential, environ=environment)
@@ -136,7 +146,8 @@ def run_compatibility_check(
         "skill": (REPO_ROOT / "SKILL.md").is_file(),
         "references": (REPO_ROOT / "references").is_dir(),
         "scripts": (REPO_ROOT / "scripts").is_dir(),
-        "venues_root": Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues").is_dir(),
+        "drive_root": bool(environment.get("NEON_DRIVE_ROOT"))
+        and Path(environment["NEON_DRIVE_ROOT"]).expanduser().is_dir(),
     }
     network = _check_network() if run_network else {"status": "skipped"}
     fixture = run_club_babaloo_fixture()

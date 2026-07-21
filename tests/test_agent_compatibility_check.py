@@ -15,11 +15,11 @@ class AgentCompatibilityCheckTests(unittest.TestCase):
         secret = "top-secret-test-value"
         result = check_credential(
             {
-                "id": "agentmail",
+                "id": "test-service",
                 "required": True,
-                "sources": [{"type": "env", "name": "AGENTMAIL_API_KEY"}],
+                "sources": [{"type": "env", "name": "TEST_SERVICE_KEY"}],
             },
-            environ={"AGENTMAIL_API_KEY": secret},
+            environ={"TEST_SERVICE_KEY": secret},
         )
 
         serialized = json.dumps(result)

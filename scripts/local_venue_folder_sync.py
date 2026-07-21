@@ -19,10 +19,7 @@ from scripts.bandsheet_verification_report import PUBLIC_CALENDAR_ICS_URL, parse
 from scripts.venue_agent_tool import normalize_venue_name
 
 
-VENUES_ROOT = Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues")
-DEFAULT_LOCAL_MODEL_URL = "http://127.0.0.1:1234/v1/chat/completions"
-DEFAULT_LOCAL_MODEL = os.environ.get("NEON_LOCAL_MODEL", "gemma-4-e2b-it")
-LOCAL_MODEL_TIMEOUT_SECONDS = 120
+VENUES_ROOT = Path(os.environ.get("NEON_DRIVE_ROOT", REPO_ROOT)).expanduser() / "Venues"
 TEST_VENUE_ALIASES = {"club babaloo", "club bobaloo"}
 VENUE_TITLE_ALIASES = {
     "gig at fig mountain brewing": "Fig Mountain",
@@ -107,85 +104,9 @@ def build_receipt(gig: LocalGig, created_venue_folder: bool, created_gig_folder:
     )
 
 
-def build_local_model_prompt(gig: LocalGig) -> str:
-    return (
-        "Create a short read-only local digest for this Neon Blonde gig folder.\n\n"
-        f"Venue: {gig.venue}\n"
-        f"City: {gig.city}\n"
-        f"Date: {gig.date}\n"
-        f"Time: {gig.time}\n\n"
-        "Include likely follow-up questions and missing details to check. "
-        "Do not confirm the booking, edit the calendar, send email, update payment status, or publish anything."
-    )
-
-
-def request_local_model_digest(
-    gig: LocalGig,
-    model_url: str = DEFAULT_LOCAL_MODEL_URL,
-    *,
-    model: str = DEFAULT_LOCAL_MODEL,
-) -> str:
-    payload = json.dumps(
-        {
-            "model": model,
-            "messages": [{"role": "user", "content": build_local_model_prompt(gig)}],
-            "max_tokens": 350,
-            "temperature": 0.2,
-        }
-    ).encode("utf-8")
-    request = urllib.request.Request(model_url, data=payload, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=LOCAL_MODEL_TIMEOUT_SECONDS) as response:
-        data = json.loads(response.read().decode("utf-8"))
-    choices = data.get("choices") or []
-    if not choices:
-        return ""
-    return str(choices[0].get("message", {}).get("content") or "").strip()
-
-
-def write_local_model_file(
-    gig: LocalGig,
-    gig_folder: Path,
-    *,
-    use_local_model: bool = False,
-    model_url: str = DEFAULT_LOCAL_MODEL_URL,
-    model: str = DEFAULT_LOCAL_MODEL,
-) -> Path:
-    path = gig_folder / "LOCAL_MODEL_DIGEST.md"
-    if path.exists():
-        return path
-    if use_local_model:
-        try:
-            digest = request_local_model_digest(gig, model_url, model=model)
-            if digest:
-                path.write_text(digest + "\n", encoding="utf-8")
-                return path
-        except Exception as exc:
-            path.write_text(
-                "# Local Model Digest\n\n"
-                f"Local model unavailable: {exc}\n\n"
-                "Folder creation succeeded. Run this digest again when the local model is available.\n",
-                encoding="utf-8",
-            )
-            return path
-
-    path.write_text(
-        "# Local Model Digest\n\n"
-        "Pending local model run.\n\n"
-        + build_local_model_prompt(gig)
-        + "\n",
-        encoding="utf-8",
-    )
-    return path
-
-
 def sync_local_gig_folder(
     gig: LocalGig,
     venues_root: Path = VENUES_ROOT,
-    *,
-    write_model_file: bool = True,
-    use_local_model: bool = False,
-    model_url: str = DEFAULT_LOCAL_MODEL_URL,
-    model: str = DEFAULT_LOCAL_MODEL,
 ) -> dict:
     venues_root.mkdir(parents=True, exist_ok=True)
     venue_name = clean_calendar_venue_title(gig.venue)
@@ -207,16 +128,6 @@ def sync_local_gig_folder(
     receipt_path = gig_folder / "LOCAL_GIG_RECEIPT.md"
     receipt_path.write_text(build_receipt(gig, created_venue_folder, created_gig_folder), encoding="utf-8")
 
-    model_path = None
-    if write_model_file:
-        model_path = write_local_model_file(
-            gig,
-            gig_folder,
-            use_local_model=use_local_model,
-            model_url=model_url,
-            model=model,
-        )
-
     return {
         "status": "needs_review" if created_venue_folder else "success",
         "venue": gig.venue,
@@ -224,7 +135,6 @@ def sync_local_gig_folder(
         "venue_folder": str(venue_folder),
         "gig_folder": str(gig_folder),
         "receipt_path": str(receipt_path),
-        "local_model_path": str(model_path) if model_path else None,
         "created_venue_folder": created_venue_folder,
         "created_gig_folder": created_gig_folder,
     }
@@ -261,9 +171,6 @@ def main() -> int:
     parser.add_argument("--sync-calendar", action="store_true", help="Sync all future public-calendar gigs.")
     parser.add_argument("--calendar-url", default=PUBLIC_CALENDAR_ICS_URL)
     parser.add_argument("--venues-root", default=str(VENUES_ROOT))
-    parser.add_argument("--use-local-model", action="store_true")
-    parser.add_argument("--local-model-url", default=DEFAULT_LOCAL_MODEL_URL)
-    parser.add_argument("--local-model", default=DEFAULT_LOCAL_MODEL)
     args = parser.parse_args()
 
     if args.sync_calendar:
@@ -274,13 +181,7 @@ def main() -> int:
         parser.error("Use --sync-calendar or provide --title, --location, and --start")
 
     results = [
-        sync_local_gig_folder(
-            gig,
-            Path(args.venues_root),
-            use_local_model=args.use_local_model,
-            model_url=args.local_model_url,
-            model=args.local_model,
-        )
+        sync_local_gig_folder(gig, Path(args.venues_root))
         for gig in gigs
     ]
     print(json.dumps({"status": "success", "count": len(results), "results": results}, indent=2))

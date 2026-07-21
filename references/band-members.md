@@ -40,7 +40,7 @@ These are confirmed, multi-day blocks documented on the calendar:
 
 Private phone numbers are stored outside the repo at:
 
-`/Volumes/VADER/Manifold/Neon_Blonde/Administrative/private-band-member-contacts.md`
+`$NEON_CONTACTS_ROOT/private-band-member-contacts.md`
 
 Do not copy phone numbers into GitHub-tracked files, public Band Sheet content, venue portal materials, or venue-facing messages unless Mike explicitly asks for a specific number to be shared.
 
@@ -52,7 +52,7 @@ Use Mike and Alfred as the default internal escalation path for venue booking qu
 
 | Member | Preferred Channel | Notes |
 |--------|------------------|-------|
-| Mike Miller | Email (band Gmail) + Telegram + private phone | Primary booking lead. Telegram via @Neonbandman_bot for approvals, email for all booking correspondence |
+| Mike Miller | Email (band Gmail) + Telegram + private phone | Primary booking lead. Telegram via @neonblondebot for approvals, email for all booking correspondence |
 | Alfred Morlaes | Email + private phone | Active booking lead / assistant administrative. Receives Band Sheet updates and important alerts. Has calendar access (4lfred20@gmail.com). |
 | Kyle Fegley | Private phone | Calendar access (kyle.fegley@gmail.com) — mainly creates member-out events |
 | Curtis Clyde | Private phone | Occasional booking lead; check calendar for member-out context |

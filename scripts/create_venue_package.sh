@@ -15,7 +15,8 @@ safe_name() {
   printf '%s' "$1" | tr '/:' '__' | tr -s ' '
 }
 
-BASE_DIR="/Users/studio_hub/Library/CloudStorage/GoogleDrive-neonblondevc@gmail.com/My Drive/Venues"
+: "${NEON_DRIVE_ROOT:?Set NEON_DRIVE_ROOT to the locally mirrored Google Drive folder}"
+BASE_DIR="${NEON_DRIVE_ROOT}/Venues"
 VENUE_SAFE="$(safe_name "${VENUE_NAME}")"
 FOLDER_NAME="${VENUE_SAFE} - ${VENUE_DATE}"
 TARGET_DIR="${BASE_DIR}/${FOLDER_NAME}"

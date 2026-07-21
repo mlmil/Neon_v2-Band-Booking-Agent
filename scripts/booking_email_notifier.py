@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
+import os
 import re
-import subprocess
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -13,7 +13,6 @@ from scripts.intake_email_parser import MONTHS, parse_booking_request
 
 CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/neonblondevc%40gmail.com/public/basic.ics"
 DEFAULT_CHAT_ID = 7118814432
-DEFAULT_TOKEN_PATH = Path.home() / ".hermes" / "secure" / "neon_bot_token.txt"
 DEFAULT_ACTIVE_EMAIL_PATH = Path.home() / ".hermes" / "neon_active_booking_email.json"
 
 
@@ -55,40 +54,19 @@ def check_date_availability(iso_date: str | None, *, fetch_calendar=fetch_public
     return results[0] if results[0] == results[1] else "uncertain"
 
 
-def summarize_with_gemini(item: dict, availability: str) -> str:
-    thread_lines = []
-    for message in item.get("thread_messages") or []:
-        thread_lines.append(
-            f"From: {message.get('from', 'Unknown')}\n"
-            f"Subject: {message.get('subject', '')}\n"
-            f"{message.get('text') or message.get('extracted_text') or message.get('preview') or ''}"
-        )
-    prompt = "\n".join(
-        [
-            "You are Neon V2 notifying Mike in Telegram about a new human email in the Neon AgentMail inbox.",
-            "Read the message and thread naturally. Do not classify it or call it a new booking unless it truly starts a new request.",
-            "If it is a reply, say who replied and summarize what they said in plain language.",
-            "Mention the calendar availability result only when it is relevant and reliable.",
-            "End with one useful question, usually whether Mike wants a draft response.",
-            "Keep it under 120 words. Do not draft or send an email yet.",
-            f"Availability check: {availability}",
-            "",
-            "Thread:",
-            "\n\n---\n\n".join(thread_lines) or str(item.get("body", "")),
-        ]
+def summarize_email(item: dict, availability: str) -> str:
+    sender_name, _ = _sender_parts(str(item.get("sender", "Unknown")))
+    body = re.sub(r"\s+", " ", str(item.get("body", ""))).strip()
+    preview = body[:900] + ("…" if len(body) > 900 else "")
+    count = int(item.get("thread_message_count") or len(item.get("thread_messages") or []))
+    availability_line = "" if availability == "uncertain" else f"\nCalendar check: {availability}."
+    return (
+        f"📧 EMAIL ACTION — {sender_name}\n"
+        f"Subject: {item.get('subject', '(no subject)')}\n"
+        f"Conversation history: {count or 1} message(s).{availability_line}\n\n"
+        f"Latest message:\n{preview or '(no readable body)'}\n\n"
+        "Neon V2 has preserved the conversation context. Reply here if you want the assistant to prepare the approval draft."
     )
-    completed = subprocess.run(
-        ["/opt/homebrew/bin/gemini", "--skip-trust", "--approval-mode", "plan", "--prompt", prompt],
-        cwd=Path(__file__).resolve().parents[1],
-        text=True,
-        capture_output=True,
-        timeout=60,
-        check=False,
-    )
-    if completed.returncode != 0 or not completed.stdout.strip():
-        sender_name, _ = _sender_parts(str(item.get("sender", "Unknown")))
-        return f"{sender_name} replied:\n\n{str(item.get('body', '')).strip()}\n\nWant me to draft a response?"
-    return completed.stdout.strip()
 
 
 class BookingEmailNotifier:
@@ -100,7 +78,7 @@ class BookingEmailNotifier:
         active_email_path: Path = DEFAULT_ACTIVE_EMAIL_PATH,
         telegram_request=None,
         calendar_fetch=fetch_public_calendar,
-        summarizer=summarize_with_gemini,
+        summarizer=summarize_email,
     ) -> None:
         self.telegram_token = telegram_token
         self.chat_id = chat_id
@@ -111,12 +89,18 @@ class BookingEmailNotifier:
 
     @classmethod
     def from_defaults(cls) -> "BookingEmailNotifier":
-        return cls(telegram_token=DEFAULT_TOKEN_PATH.read_text(encoding="utf-8").strip())
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+        if not token:
+            raise RuntimeError("TELEGRAM_BOT_TOKEN is not configured")
+        chat_id = int(os.environ.get("NEON_EMAIL_TRIAGE_CHAT_ID", DEFAULT_CHAT_ID))
+        return cls(telegram_token=token, chat_id=chat_id)
 
     def notify(self, item: dict) -> dict:
         parsed = parse_booking_request(str(item.get("body", "")))
         availability = check_date_availability(parsed.get("date"), fetch_calendar=self.calendar_fetch)
         text = self.summarizer(item, availability)
+        if len(text) > 4000:
+            text = text[:4000] + "\n...[truncated]"
         response = self.telegram_request("sendMessage", {"chat_id": self.chat_id, "text": text})
         if response.get("ok") is not True:
             return {"status": "failed", "availability": availability}
@@ -130,6 +114,9 @@ class BookingEmailNotifier:
             "message_id": str(item.get("message_id", "")),
             "body": str(item.get("body", "")),
             "availability": availability,
+            "gmail_thread_id": str(item.get("gmail_thread_id", "")),
+            "thread_messages": item.get("thread_messages") or [],
+            "thread_message_count": int(item.get("thread_message_count") or 0),
         }
         self.active_email_path.parent.mkdir(parents=True, exist_ok=True)
         self.active_email_path.write_text(json.dumps(active, indent=2), encoding="utf-8")

@@ -45,7 +45,6 @@ next_step:
 | Folder creation fails | `FOLDER_BLOCKED` | File writes into missing folder | Create local report of intended actions |
 | Payment data incomplete | `PAYMENT_INCOMPLETE` | Mark payment complete | Keep gig confirmed, leave admin queue open |
 | Scout source incomplete | `SCOUT_SOURCE_INCOMPLETE` | Promote lead to Booking Pipeline | Keep lead `researching`, list missing fields |
-| Dashboard write fails | `DASHBOARD_WRITE_FAILED` | Assume write succeeded | Show failed action, keep dashboard read-only |
 | Weekday gig passes calendar contract | `WEEKDAY_GIG_REVIEW` | Mark booking fully clean without confirmation | Keep dry-run plan visible, ask for confirmation |
 | Early Santa Barbara-area weekday gig | `SB_EARLY_WEEKDAY_LOGISTICS` | Mark logistics clean without review | Keep booking visible, flag Kyle/Dave travel timing |
 
@@ -90,8 +89,6 @@ These can continue when clearly marked as local or draft:
 - Mismatch report
 - Scout research note
 - Draft email
-- Local model digest
-- Dashboard read-only display
 - List of proposed next actions
 
 ## Example Response

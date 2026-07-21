@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
 import re
 import sys
 import urllib.error
@@ -15,7 +16,10 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 
-DEFAULT_OUTPUT_ROOT = Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues/_Logo Scout")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_OUTPUT_ROOT = (
+    Path(os.environ.get("NEON_DRIVE_ROOT", REPO_ROOT)).expanduser() / "Venues" / "_Logo Scout"
+)
 MAX_DOWNLOAD_BYTES = 2_000_000
 
 

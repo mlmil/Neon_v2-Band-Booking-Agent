@@ -5,11 +5,13 @@ import argparse
 import csv
 import json
 import os
+import smtplib
 import sys
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+from email.mime.text import MIMEText
 from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -155,11 +157,22 @@ def build_email(items: list[MissingCloseout]) -> tuple[str, str]:
     return subject, "\n".join(lines)
 
 
-def send_agentmail(subject: str, body: str, recipients: list[str]) -> dict[str, object]:
-    from scripts.agentmail_health_check import DEFAULT_INBOX
-    from scripts.agentmail_send import send_agentmail as send
-
-    return send(inbox=DEFAULT_INBOX, to=recipients, cc=[], subject=subject, text=body)
+def send_gmail(subject: str, body: str, recipients: list[str]) -> dict[str, object]:
+    config_path = Path(
+        os.environ.get("NEON_SMTP_CONFIG", REPO_ROOT / ".secrets" / "smtp_config.json")
+    ).expanduser()
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    sender = config["email"]
+    message = MIMEText(body)
+    message["Subject"] = subject
+    message["From"] = sender
+    message["To"] = ", ".join(recipients)
+    host = config.get("smtp_host", "smtp.gmail.com")
+    port = int(config.get("smtp_port", 465))
+    with smtplib.SMTP_SSL(host, port, timeout=30) as smtp:
+        smtp.login(sender, config["app_password"])
+        smtp.sendmail(sender, recipients, message.as_string())
+    return {"status": "sent", "to": recipients, "subject": subject, "provider": "gmail_smtp"}
 
 
 def refresh_queue(queue_path: Path, *, now: datetime | None = None, lookback_days: int = 30) -> dict[str, object]:
@@ -184,6 +197,15 @@ def run_reminders(
 ) -> dict[str, object]:
     if refresh:
         refresh_queue(queue_path, now=now, lookback_days=lookback_days)
+    if not ledger_path.exists():
+        return {
+            "status": "blocked",
+            "code": "PAYOUT_LEDGER_MISSING",
+            "missing": 0,
+            "sent": 0,
+            "ledger": str(ledger_path),
+            "reason": "Authoritative payout ledger is missing; reminders are suppressed to avoid repeat emails.",
+        }
     queue_rows = read_queue_rows(queue_path)
     ledger_rows = read_ledger_rows(ledger_path)
     missing = missing_closeouts(queue_rows, ledger_rows, now=now, delay_hours=delay_hours, lookback_days=lookback_days)
@@ -197,7 +219,7 @@ def run_reminders(
     if dry_run:
         send_receipt = {"status": "dry_run", "to": target_recipients, "subject": subject, "body": body}
     else:
-        send_receipt = send_agentmail(subject, body, target_recipients)
+        send_receipt = send_gmail(subject, body, target_recipients)
 
     if not dry_run and send_receipt.get("status") == "sent":
         current_time = now or datetime.now(PACIFIC)

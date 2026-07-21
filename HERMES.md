@@ -1,12 +1,6 @@
 # Hermes Entry Point
 
-The canonical Hermes skill path is:
-
-```text
-/Users/studio_hub/.hermes/skills/Neon_v2
-```
-
-It must resolve to this repository. Load `SKILL.md` and
+The Hermes profile skill entry must resolve to this repository. Load `SKILL.md` and
 `AGENT_COMPATIBILITY.md`, then run:
 
 ```bash

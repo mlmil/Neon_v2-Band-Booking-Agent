@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Neon Blonde inbox monitor — checks for new emails and flags actionable ones using IMAP (Read-Only)."""
+"""Neon Blonde inbox monitor — checks for new emails and flags actionable ones via Gmail IMAP."""
 from __future__ import annotations
 
 import argparse
-import email
+import email as email_lib
 import imaplib
 import json
 import os
 import re
+import smtplib
 import sys
-import urllib.parse
 from datetime import datetime, timezone
 from email.header import decode_header
+from email.mime.text import MIMEText
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -20,9 +21,13 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.intake_receipt_tool import DEFAULT_RECEIPT_DIR, build_intake_receipt, write_intake_receipt
 from scripts.booking_email_notifier import BookingEmailNotifier
-from scripts.agentmail_health_check import DEFAULT_INBOX, agentmail_request
 
-DEFAULT_STATE_PATH = Path("data/intake/processed-agentmail.json")
+DEFAULT_STATE_PATH = Path("data/intake/processed-gmail-imap.json")
+DEFAULT_THREAD_CASE_DIR = Path("data/intake/threads")
+DEFAULT_SMTP_CONFIG = Path(
+    os.environ.get("NEON_SMTP_CONFIG", REPO_ROOT / ".secrets" / "smtp_config.json")
+).expanduser()
+BOT_SEND_ADDRESS = "neonblondevc+neonv2@gmail.com"
 
 ACTION_KEYWORDS = [
     "gig", "booking", "contract", "date", "venue", "festival", "schedule",
@@ -45,7 +50,6 @@ VIP_SENDERS = [
 def redact_secrets(text: str) -> str:
     if not text:
         return text
-    # Redact common secrets patterns
     text = re.sub(r"(?i)(password\s*[:=]\s*)(\S+)", r"\1[REDACTED]", text)
     text = re.sub(r"(?i)(api[_-]?key\s*[:=]\s*)(\S+)", r"\1[REDACTED]", text)
     text = re.sub(r"(?i)(bearer\s+)([A-Za-z0-9\-\._~\+\/]+)", r"\1[REDACTED]", text)
@@ -54,37 +58,15 @@ def redact_secrets(text: str) -> str:
     return text
 
 
-def decode_mime(s: str | bytes | None) -> str:
-    if not s:
-        return ''
-    parts = decode_header(s)
-    return ''.join(
-        p.decode(c or 'utf-8', errors='replace') if isinstance(p, bytes) else p
-        for p, c in parts
-    )
-
-
-def get_body(msg) -> str:
-    if msg.is_multipart():
-        for part in msg.walk():
-            if part.get_content_type() == 'text/plain':
-                payload = part.get_payload(decode=True)
-                if payload:
-                    return payload.decode('utf-8', errors='replace')
-
-        # Fallback HTML stripper if only html exists
-        for part in msg.walk():
-            if part.get_content_type() == 'text/html':
-                payload = part.get_payload(decode=True)
-                if payload:
-                    html_data = payload.decode('utf-8', errors='replace')
-                    text = re.sub(r"<[^>]+>", " ", html_data)
-                    return re.sub(r"\s+", " ", text).strip()
-    else:
-        payload = msg.get_payload(decode=True)
-        if payload:
-            return payload.decode('utf-8', errors='replace')
-    return ''
+def load_smtp_config(path: Path) -> dict:
+    if not path.exists():
+        print(f"SMTP config not found: {path}", file=sys.stderr)
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"SMTP config parse error: {e}", file=sys.stderr)
+        return {}
 
 
 def should_skip_message(sender: str, subject: str) -> bool:
@@ -93,10 +75,8 @@ def should_skip_message(sender: str, subject: str) -> bool:
         return True
     if "calendar-notification@google.com" in s:
         return True
-    if "neon_blonde@agentmail.to" in s:
-        return True
     return "neonblondevc@gmail.com" in s and (
-        "daily check" in subject.lower() or "status report" in subject.lower()
+        "daily check" in subject.lower() or "status report" in subject.lower() or "payout" in subject.lower()
     )
 
 
@@ -109,15 +89,12 @@ def build_flagged_email(
 ) -> dict | None:
     if should_skip_message(sender, subject):
         return None
-
     combined = f"{subject} {body} {sender}".lower()
     is_vip = any(v in sender.lower() for v in VIP_SENDERS)
     has_keyword = any(k in combined for k in ACTION_KEYWORDS)
     if not (is_vip or has_keyword):
         return None
-
     redacted_body = redact_secrets(body)
-
     return {
         "sender": sender,
         "subject": subject,
@@ -127,6 +104,232 @@ def build_flagged_email(
         "body": redacted_body,
         "preview": redacted_body[:200] if redacted_body else "(no body)",
     }
+
+
+def decode_str(value: str | None) -> str:
+    if not value:
+        return ""
+    parts = decode_header(value)
+    result = []
+    for part, enc in parts:
+        if isinstance(part, bytes):
+            result.append(part.decode(enc or "utf-8", errors="replace"))
+        else:
+            result.append(part)
+    return " ".join(result)
+
+
+def get_body_from_message(msg) -> str:
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() == "text/plain":
+                payload = part.get_payload(decode=True)
+                if payload:
+                    return payload.decode("utf-8", errors="replace")
+        for part in msg.walk():
+            if part.get_content_type() == "text/html":
+                payload = part.get_payload(decode=True)
+                if payload:
+                    text = payload.decode("utf-8", errors="replace")
+                    text = re.sub(r"<[^>]+>", " ", text)
+                    text = re.sub(r"\s+", " ", text).strip()
+                    return text
+    else:
+        payload = msg.get_payload(decode=True)
+        if payload:
+            return payload.decode("utf-8", errors="replace")
+    return ""
+
+
+def fetch_gmail_thread(
+    mail,
+    *,
+    thread_id: str,
+    account_email: str,
+    max_messages: int = 60,
+) -> list[dict]:
+    """Return chronological incoming and sent messages for one Gmail thread."""
+    if not thread_id:
+        return []
+    status, _ = mail.select('"[Gmail]/All Mail"', readonly=True)
+    if status != "OK":
+        return []
+    status, data = mail.search(None, "X-GM-THRID", thread_id)
+    if status != "OK" or not data or not data[0]:
+        return []
+    messages = []
+    for mid in data[0].split()[-max_messages:]:
+        status, msg_data = mail.fetch(mid, "(BODY.PEEK[])")
+        if status != "OK":
+            continue
+        raw = next(
+            (part[1] for part in msg_data if isinstance(part, tuple) and len(part) > 1),
+            None,
+        )
+        if not raw:
+            continue
+        msg = email_lib.message_from_bytes(raw)
+        sender = decode_str(msg.get("From", ""))
+        recipients = decode_str(msg.get("To", ""))
+        body = redact_secrets(get_body_from_message(msg))
+        messages.append(
+            {
+                "from": sender,
+                "to": recipients,
+                "subject": decode_str(msg.get("Subject", "")),
+                "date": msg.get("Date", ""),
+                "message_id": msg.get("Message-ID", ""),
+                "direction": "sent" if account_email.lower() in sender.lower() else "received",
+                "text": body,
+            }
+        )
+    return messages
+
+
+def fetch_flagged_messages_imap(
+    *,
+    config: dict,
+    processed_ids: set[str],
+    max_results: int,
+) -> tuple[int, list[dict]]:
+    """Fetch unread inbox messages via IMAP and return actionable ones."""
+    email_addr = config.get("email", "")
+    app_password = config.get("app_password", "")
+    imap_host = config.get("imap_host", "imap.gmail.com")
+    imap_port = config.get("imap_port", 993)
+    flagged = []
+    new_count = 0
+
+    if not email_addr or not app_password:
+        print("  [Gmail] credentials missing", file=sys.stderr)
+        return 0, []
+
+    try:
+        mail = imaplib.IMAP4_SSL(imap_host, imap_port)
+        mail.login(email_addr, app_password)
+        mail.select("INBOX")
+        status, data = mail.search(None, "UNSEEN")
+        if status != "OK" or not data[0]:
+            mail.logout()
+            return 0, []
+
+        msg_ids = data[0].split()[-max_results:]
+
+        for mid in msg_ids:
+            uid = mid.decode()
+            # Get UID for dedup
+            _, uid_data = mail.fetch(mid, "(UID X-GM-THRID)")
+            message_id = uid
+            gmail_thread_id = ""
+            if uid_data and uid_data[0]:
+                uid_raw = uid_data[0]
+                if isinstance(uid_raw, tuple):
+                    uid_bytes = b" ".join(part for part in uid_raw if isinstance(part, bytes))
+                else:
+                    uid_bytes = uid_raw
+                uid_match = re.search(rb"UID (\d+)", uid_bytes)
+                if uid_match:
+                    message_id = f"imap:{email_addr}:{uid_match.group(1).decode()}"
+                thread_match = re.search(rb"X-GM-THRID (\d+)", uid_bytes)
+                if thread_match:
+                    gmail_thread_id = thread_match.group(1).decode()
+
+            if message_id in processed_ids:
+                continue
+
+            # BODY.PEEK preserves the user's unread state while still fetching
+            # the complete RFC822 message payload.
+            _, msg_data = mail.fetch(mid, "(BODY.PEEK[])")
+            raw = msg_data[0][1] if msg_data and msg_data[0] and isinstance(msg_data[0], tuple) else None
+            if not raw:
+                continue
+
+            msg = email_lib.message_from_bytes(raw)
+            sender = decode_str(msg.get("From", ""))
+            subject = decode_str(msg.get("Subject", "(no subject)"))
+            date_str = msg.get("Date", "")
+            body = get_body_from_message(msg)
+            thread_messages = fetch_gmail_thread(
+                mail,
+                thread_id=gmail_thread_id,
+                account_email=email_addr,
+            )
+            mail.select("INBOX", readonly=True)
+
+            if should_skip_message(sender, subject):
+                processed_ids.add(message_id)
+                continue
+
+            new_count += 1
+            flagged.append({
+                "sender": sender,
+                "subject": subject,
+                "date": date_str,
+                "message_id": message_id,
+                "vip": any(v in sender.lower() for v in VIP_SENDERS),
+                "body": redact_secrets(body),
+                "preview": redact_secrets(body)[:200] if body else "(no body)",
+                "gmail_thread_id": gmail_thread_id,
+                "thread_messages": thread_messages,
+                "thread_message_count": len(thread_messages),
+            })
+
+        mail.logout()
+    except Exception as e:
+        print(f"  [Gmail] IMAP error: {e}", file=sys.stderr)
+
+    return new_count, flagged
+
+
+def mark_messages_seen(config: dict) -> None:
+    """Mark all UNSEEN messages in the inbox as SEEN (archive them visually)."""
+    email_addr = config.get("email", "")
+    app_password = config.get("app_password", "")
+    imap_host = config.get("imap_host", "imap.gmail.com")
+    imap_port = config.get("imap_port", 993)
+    if not email_addr or not app_password:
+        return
+    try:
+        mail = imaplib.IMAP4_SSL(imap_host, imap_port)
+        mail.login(email_addr, app_password)
+        mail.select("INBOX")
+        status, data = mail.search(None, "UNSEEN")
+        if status == "OK" and data[0]:
+            for mid in data[0].split():
+                mail.store(mid, "+FLAGS", "\\SEEN")
+        mail.logout()
+    except Exception as e:
+        print(f"  [Gmail] mark-seen error: {e}", file=sys.stderr)
+
+
+def send_email_smtp(
+    config: dict,
+    to: str,
+    subject: str,
+    body: str,
+) -> bool:
+    """Send an email via SMTP using the bot's plus-alias as From."""
+    email_addr = config.get("email", "")
+    app_password = config.get("app_password", "")
+    smtp_host = config.get("smtp_host", "smtp.gmail.com")
+    smtp_port = config.get("smtp_port", 587)
+    if not email_addr or not app_password:
+        print("  [SMTP] credentials missing", file=sys.stderr)
+        return False
+    try:
+        msg = MIMEText(body, "plain", "utf-8")
+        msg["From"] = f"Neon V2 <{BOT_SEND_ADDRESS}>"
+        msg["To"] = to
+        msg["Subject"] = subject
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(email_addr, app_password)
+            server.send_message(msg)
+        print(f"  -> SMTP sent to {to}")
+        return True
+    except Exception as e:
+        print(f"  [SMTP] send error: {e}", file=sys.stderr)
+        return False
 
 
 def create_intake_receipts_for_flagged(flagged: list[dict], receipt_dir: Path = DEFAULT_RECEIPT_DIR) -> list[Path]:
@@ -141,7 +344,6 @@ def create_intake_receipts_for_flagged(flagged: list[dict], receipt_dir: Path = 
         )
         if "email_text" in receipt:
             del receipt["email_text"]
-
         path = write_intake_receipt(receipt, receipt_dir)
         paths.append(path)
     return paths
@@ -173,6 +375,7 @@ def process_flagged_messages(
     *,
     receipt_dir: Path,
     state_path: Path,
+    thread_case_dir: Path = DEFAULT_THREAD_CASE_DIR,
     notifier=None,
 ) -> list[Path]:
     receipt_paths = []
@@ -185,6 +388,30 @@ def process_flagged_messages(
             message_id=item.get("message_id"),
         )
         path = write_intake_receipt(receipt, receipt_dir)
+        thread_case_dir.mkdir(parents=True, exist_ok=True)
+        case_key = item.get("gmail_thread_id") or re.sub(
+            r"[^A-Za-z0-9._-]+", "-", str(item.get("message_id") or "email-case")
+        ).strip("-")
+        case_path = thread_case_dir / f"{case_key}.json"
+        case_path.write_text(
+            json.dumps(
+                {
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "sender": item.get("sender"),
+                    "subject": item.get("subject"),
+                    "latest_message_id": item.get("message_id"),
+                    "gmail_thread_id": item.get("gmail_thread_id"),
+                    "latest_body": item.get("body"),
+                    "thread_message_count": item.get("thread_message_count"),
+                    "thread_messages": item.get("thread_messages") or [],
+                    "send_status": "draft_not_created",
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        item["case_path"] = str(case_path)
         if notifier is not None:
             result = notifier(item)
             if result.get("status") != "sent":
@@ -195,143 +422,10 @@ def process_flagged_messages(
     return receipt_paths
 
 
-def fetch_flagged_messages_agentmail(
-    *,
-    request,
-    processed_ids: set[str],
-    max_results: int,
-) -> tuple[int, list[dict]]:
-    inbox = urllib.parse.quote(DEFAULT_INBOX, safe="@")
-    status, body = request(f"/v0/inboxes/{inbox}/messages?limit={max_results}")
-    if status != 200 or not isinstance(body, dict):
-        raise RuntimeError("AgentMail inbox request failed")
-    messages = body.get("messages") or body.get("data") or []
-    flagged = []
-    new_count = 0
-    for message in messages:
-        if not isinstance(message, dict):
-            continue
-        message_id = str(message.get("message_id") or "")
-        if message_id and message_id in processed_ids:
-            continue
-        sender = str(message.get("from") or "")
-        subject = str(message.get("subject") or "")
-        date_str = str(message.get("timestamp") or message.get("created_at") or "")
-        body_text = str(message.get("text") or message.get("preview") or "")
-        labels = message.get("labels") or []
-        if "received" not in labels or should_skip_message(sender, subject):
-            continue
-        new_count += 1
-        thread_id = str(message.get("thread_id") or "")
-        thread_messages = []
-        if thread_id:
-            thread_status, thread = request(f"/v0/inboxes/{inbox}/threads/{urllib.parse.quote(thread_id, safe='')}")
-            if thread_status == 200 and isinstance(thread, dict):
-                thread_messages = thread.get("messages") or []
-                for thread_message in reversed(thread_messages):
-                    if str(thread_message.get("message_id") or "") == message_id:
-                        body_text = str(
-                            thread_message.get("text")
-                            or thread_message.get("extracted_text")
-                            or thread_message.get("preview")
-                            or body_text
-                        )
-                        break
-        flagged.append(
-            {
-                "sender": sender,
-                "subject": subject,
-                "date": date_str,
-                "message_id": message_id,
-                "thread_id": thread_id,
-                "thread_messages": thread_messages,
-                "vip": any(v in sender.lower() for v in VIP_SENDERS),
-                "body": redact_secrets(body_text),
-                "preview": redact_secrets(body_text)[:200] if body_text else "(no body)",
-            }
-        )
-    return new_count, flagged
-
-
-def fetch_flagged_messages_imap(mail: imaplib.IMAP4_SSL, processed_ids: set[str], max_results: int) -> tuple[int, list[dict]]:
-    status, data = mail.search(None, 'ALL')
-    if status != 'OK' or not data[0]:
-        return 0, []
-
-    all_uids = data[0].split()
-    msg_ids_to_check = all_uids[-max_results:]
-
-    flagged = []
-    fetched_count = 0
-
-    for uid in msg_ids_to_check:
-        # PEEK prevents marking as read
-        s, d = mail.fetch(uid, '(BODY.PEEK[HEADER])')
-        if s != 'OK' or not d or not d[0]:
-            continue
-
-        header_data = d[0][1] if isinstance(d[0], tuple) else None
-        if not header_data:
-            continue
-
-        header_msg = email.message_from_bytes(header_data)
-        msg_id = header_msg.get('Message-ID', '').strip()
-
-        # Skip if we already processed this
-        if msg_id and msg_id in processed_ids:
-            continue
-
-        fetched_count += 1
-
-        # Fetch full message payload without marking read
-        s2, d2 = mail.fetch(uid, '(BODY.PEEK[])')
-        if s2 != 'OK' or not d2 or not d2[0]:
-            continue
-
-        full_data = d2[0][1] if isinstance(d2[0], tuple) else None
-        if not full_data:
-            continue
-
-        msg = email.message_from_bytes(full_data)
-
-        sender = decode_mime(msg.get('From', ''))
-        subject = decode_mime(msg.get('Subject', ''))
-        date_str = msg.get('Date', '')
-
-        body = get_body(msg)
-
-        item = build_flagged_email(
-            sender=sender,
-            subject=subject,
-            date_str=date_str,
-            body=body,
-            message_id=msg_id,
-        )
-        if item:
-            flagged.append(item)
-
-    return fetched_count, flagged
-
-
-def get_imap_client() -> imaplib.IMAP4_SSL:
-    cfg_path = Path.home() / '.hermes' / 'skills' / 'Neon_v1' / 'smtp_config.json'
-    if not cfg_path.exists():
-        raise SystemExit(f"ERROR: SMTP config not found at {cfg_path}")
-
-    with cfg_path.open() as f:
-        cfg = json.load(f)
-
-    mail = imaplib.IMAP4_SSL(cfg.get('imap_host', 'imap.gmail.com'), cfg.get('imap_port', 993))
-    mail.login(cfg['email'], cfg['app_password'])
-    mail.select('INBOX', readonly=True) # Extra safety for read-only
-    return mail
-
-
 def print_report(new_count: int, flagged: list[dict], receipt_paths: list[Path] | None = None) -> None:
     if not flagged:
         print(f"No new actionable emails. ({new_count} total new since last check)")
         return
-
     print(f"FLAGGED {len(flagged)} of {new_count} new emails:\n")
     for item in flagged:
         tag = "VIP" if item["vip"] else "ACTION"
@@ -339,8 +433,9 @@ def print_report(new_count: int, flagged: list[dict], receipt_paths: list[Path] 
         print(f"   SUBJECT: {item['subject']}")
         print(f"   DATE: {item['date']}")
         print(f"   PREVIEW: {item['preview'][:150]}")
+        if item.get("case_path"):
+            print(f"   THREAD CASE: {item['case_path']}")
         print()
-
     if receipt_paths:
         print("INTAKE RECEIPTS WRITTEN:")
         for path in receipt_paths:
@@ -348,48 +443,66 @@ def print_report(new_count: int, flagged: list[dict], receipt_paths: list[Path] 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check Neon AgentMail for actionable booking emails.")
+    parser = argparse.ArgumentParser(description="Check Neon Gmail inbox for actionable booking emails.")
     parser.add_argument("--write-intake-receipts", action="store_true")
     parser.add_argument("--notify-telegram", action="store_true")
     parser.add_argument("--receipt-dir", default=str(DEFAULT_RECEIPT_DIR))
     parser.add_argument("--state-path", default=str(DEFAULT_STATE_PATH))
+    parser.add_argument("--thread-case-dir", default=str(DEFAULT_THREAD_CASE_DIR))
     parser.add_argument("--max-results", type=int, default=50)
+    parser.add_argument("--mark-seen", action="store_true", default=False,
+                        help="Explicitly mark all unread Gmail messages as SEEN (default: off)")
+    parser.add_argument("--smtp-config", default=str(DEFAULT_SMTP_CONFIG),
+                        help="Path to smtp_config.json for Neon Blonde Gmail")
     args = parser.parse_args()
 
     state_path = Path(args.state_path)
     processed_ids = load_processed_ids(state_path)
 
-    api_key = os.environ.get("AGENTMAIL_API_KEY")
-    if not api_key:
-        print("AgentMail unavailable: AGENTMAIL_API_KEY is missing", file=sys.stderr)
+    smtp_config_path = Path(args.smtp_config)
+    config = load_smtp_config(smtp_config_path)
+    if not config:
+        print("Gmail unavailable: could not load SMTP config", file=sys.stderr)
         return 1
 
-    def request(endpoint: str):
-        return agentmail_request(api_key, endpoint)
-
     try:
-        new_count, flagged = fetch_flagged_messages_agentmail(
-            request=request,
+        new_count, flagged = fetch_flagged_messages_imap(
+            config=config,
             processed_ids=processed_ids,
             max_results=args.max_results,
         )
     except Exception as exc:
-        print(f"AgentMail unavailable: {exc}", file=sys.stderr)
+        print(f"Gmail unavailable: {exc}", file=sys.stderr)
         return 1
 
+    # Persist seen message IDs to avoid re-processing
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps({
+            "processed_ids": list(processed_ids),
+            "last_updated": datetime.now(timezone.utc).isoformat(),
+        }, indent=2),
+        encoding="utf-8",
+    )
+
     receipt_paths = []
-    if args.write_intake_receipts:
+    if args.write_intake_receipts and flagged:
         notifier = BookingEmailNotifier.from_defaults().notify if args.notify_telegram else None
         try:
             receipt_paths = process_flagged_messages(
                 flagged,
                 receipt_dir=Path(args.receipt_dir),
                 state_path=state_path,
+                thread_case_dir=Path(args.thread_case_dir),
                 notifier=notifier,
             )
         except Exception as e:
             print(f"Failed to process booking email: {e}", file=sys.stderr)
             return 1
+
+    # Mark messages as SEEN so they don't reappear
+    if args.mark_seen:
+        mark_messages_seen(config)
 
     print_report(new_count, flagged, receipt_paths)
     return 0

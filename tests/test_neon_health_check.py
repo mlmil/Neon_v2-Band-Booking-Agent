@@ -1,14 +1,10 @@
 import json
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.neon_health_check import (
-    dashboard_health_check,
-    run_health_checks,
-)
+from scripts.neon_health_check import run_health_checks
 
 
 class TestNeonHealthCheck(unittest.TestCase):
@@ -24,18 +20,14 @@ class TestNeonHealthCheck(unittest.TestCase):
 
         result = run_health_checks(
             {
-                "agentmail": passing("agentmail"),
                 "bandsheet": passing("bandsheet"),
                 "website": passing("website"),
-                "dashboard": passing("dashboard"),
             }
         )
 
-        self.assertEqual(
-            calls, ["agentmail", "bandsheet", "website", "dashboard"]
-        )
+        self.assertEqual(calls, ["bandsheet", "website"])
         self.assertEqual(result["status"], "success")
-        self.assertEqual(result["successful_lanes"], 4)
+        self.assertEqual(result["successful_lanes"], 2)
         self.assertEqual(result["blocked_lanes"], 0)
         self.assertEqual(result["protected_writes_performed"], 0)
 
@@ -43,32 +35,32 @@ class TestNeonHealthCheck(unittest.TestCase):
         calls = []
 
         def blocked():
-            calls.append("agentmail")
-            return {"status": "blocked", "code": "AGENTMAIL_AUTH_FAILED"}
+            calls.append("bandsheet")
+            return {"status": "blocked", "code": "BANDSHEET_FETCH_FAILED"}
 
         def passing():
-            calls.append("bandsheet")
+            calls.append("website")
             return {"status": "success"}
 
         result = run_health_checks(
-            {"agentmail": blocked, "bandsheet": passing}
+            {"bandsheet": blocked, "website": passing}
         )
 
-        self.assertEqual(calls, ["agentmail", "bandsheet"])
+        self.assertEqual(calls, ["bandsheet", "website"])
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(result["blocked_lanes"], 1)
         self.assertEqual(result["needs_review_lanes"], 0)
-        self.assertEqual(result["lanes"]["bandsheet"]["status"], "success")
+        self.assertEqual(result["lanes"]["website"]["status"], "success")
 
     def test_needs_review_makes_overall_status_needs_review(self):
         def needs_review():
-            return {"status": "needs_review", "code": "LM_STUDIO_MODEL_MISSING"}
+            return {"status": "needs_review", "code": "WEBSITE_MISMATCH"}
 
         def passing():
             return {"status": "success"}
 
         result = run_health_checks(
-            {"lm_studio": needs_review, "dashboard": passing}
+            {"website": needs_review, "bandsheet": passing}
         )
 
         self.assertEqual(result["status"], "needs_review")
@@ -84,7 +76,7 @@ class TestNeonHealthCheck(unittest.TestCase):
         result = run_health_checks(
             {
                 "website": broken,
-                "dashboard": lambda: {"status": "success"},
+                "bandsheet": lambda: {"status": "success"},
             }
         )
 
@@ -93,38 +85,12 @@ class TestNeonHealthCheck(unittest.TestCase):
             result["lanes"]["website"]["code"], "HEALTH_CHECK_EXCEPTION"
         )
         self.assertIn("network unavailable", result["lanes"]["website"]["error"])
-        self.assertEqual(result["lanes"]["dashboard"]["status"], "success")
-
-    def test_dashboard_check_requires_static_files_and_loads_queue(self):
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            dashboard = root / "dashboard"
-            (dashboard / "components").mkdir(parents=True)
-            (dashboard / "index.html").write_text("<html></html>")
-            (dashboard / "components" / "app.jsx").write_text("function App() {}")
-            (dashboard / "components" / "panels.jsx").write_text(
-                "function Panels() {}"
-            )
-            queue = root / "queue.csv"
-            queue.write_text(
-                "gig_id,venue,city,date,start_at,end_at,queue_status,next_step,"
-                "created_at,updated_at\n"
-                "gig-1,Venue,City,2026-06-01,,,needs_closeout,enter payout,,\n"
-            )
-
-            result = dashboard_health_check(
-                dashboard_dir=dashboard,
-                queue_path=queue,
-                payouts_path=root / "missing-payouts.csv",
-            )
-
-        self.assertEqual(result["status"], "success")
-        self.assertEqual(result["active_post_gig_items"], 1)
+        self.assertEqual(result["lanes"]["bandsheet"]["status"], "success")
 
     def test_receipt_does_not_contain_secret_shaped_fields(self):
         result = run_health_checks(
             {
-                "agentmail": lambda: {
+                "bandsheet": lambda: {
                     "status": "success",
                     "key": {"present": True, "sha256_prefix": "abc123"},
                     "api_key": "secret",

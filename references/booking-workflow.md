@@ -50,7 +50,7 @@ When a venue contacts Mike or someone about a potential gig, collect this inform
 
 ### Venue folder rule
 After adding a new venue gig, create a folder at:
-`/Users/studio_hub/Library/CloudStorage/GoogleDrive-neonblondevc@gmail.com/My Drive/Venues`
+`$NEON_DRIVE_ROOT/Venues`
 
 Folder name:
 `Venue Name - YYYY-MM-DD`
@@ -84,7 +84,7 @@ For the GIMP harness build details, see [gimp-harness-spec.md](gimp-harness-spec
 After confirmation, create the folder with:
 
 ```bash
-mkdir -p "/Users/studio_hub/Library/CloudStorage/GoogleDrive-neonblondevc@gmail.com/My Drive/Venues/Venue Name - YYYY-MM-DD"
+mkdir -p "$NEON_DRIVE_ROOT/Venues/Venue Name - YYYY-MM-DD"
 ```
 
 Replace `Venue Name - YYYY-MM-DD` with the confirmed venue and date. Do not run this for tentative bookings.
@@ -187,33 +187,17 @@ Error policy:
 - Never hide a failure behind a generic "could not sync" or "something went wrong" message.
 - State the exact file, token, JSON, network, or API failure and the next action to take.
 
-## GroupMe Sync
-
-Neon Blonde uses GroupMe for all band communication.
+## Telegram Communication
 
 The workflow should:
-1. Read `data/groupme/messages/` for JSON exports for each GroupMe message.
-2. Update the communication database with new messages hourly.
-3. Preserve timestamps, sender names, and any thread context available in the JSON.
-4. Treat GroupMe as a source of truth for band communication and follow-up context.
-5. Skip malformed or duplicate files and flag sync issues if needed.
-6. Use `scripts/sync_groupme_messages.py` to refresh the local database.
-7. Run the sync on launch and at least once every hour.
-
-If the ingest folder path changes, ask Mike before syncing.
-
-Suggested scheduler:
-- hourly cron or launchd job
-- also run immediately when the skill launches
-- also run before morning check-ins and availability checks
+1. Use the profile-local Hermes Telegram gateway.
+2. Preserve sender, chat, timestamp, and thread context when recording operational decisions.
+3. Treat approved Telegram messages as band communication context.
+4. Require Mike's explicit approval before sending band-wide notices or commitments.
 
 Launch order:
-1. Run `scripts/launch_neon_booking.sh`
-2. Sync GroupMe
-3. Continue with the requested booking or briefing task
-
-Mount check:
-- If the Neon V2 repository is unavailable, stop and tell Mike to mount VADER.
+1. Confirm the `neon-v2` Hermes Telegram gateway is online.
+2. Continue with the requested booking or briefing task.
 
 ## Availability Checking
 
@@ -236,7 +220,7 @@ If a gig needs to be cancelled:
 1. Remove from the Neon Blonde 2026 calendar
 2. Note why if known
 3. Update/regenerate The Band Sheet
-4. Inform the band via GroupMe: "Feb 1 Ventura Pier gig cancelled [reason if applicable]"
+4. Prepare a Telegram notice for Mike's approval: "Feb 1 Ventura Pier gig cancelled [reason if applicable]"
 
 ## Special Notes
 

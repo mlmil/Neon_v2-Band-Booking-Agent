@@ -114,7 +114,7 @@ Required minimum fields:
 
 ## Intake Acknowledgment
 
-For known booking contacts, Neon V2 may send an acknowledgment automatically. For unknown senders, draft the acknowledgment for Mike approval.
+For every booking contact, Neon V2 drafts the acknowledgment or reply and sends it to Mike for approval. No venue-facing message is sent automatically, including replies to known contacts.
 
 Preferred acknowledgment:
 

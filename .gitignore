@@ -2,8 +2,8 @@ Neon_v2/
 .DS_Store
 data/post_gig/*.csv
 .secrets/
+NeonV2 Bot SN/
 data/compatibility/
-data/groupme/
 data/health/
 data/intake/
 data/telegram/

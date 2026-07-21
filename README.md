@@ -34,13 +34,13 @@ Neon V2 supports the complete gig lifecycle:
 
 ### Booking and communication intake
 
-Neon V2 processes booking-related messages from Gmail, AgentMail, Telegram, and GroupMe without treating every message as a confirmed gig. Intake and booking are separate phases: a request can be parsed, summarized, and queued without altering a calendar or publishing anything.
+Neon V2 processes booking-related messages from the Neon Blonde Gmail account and Telegram without treating every message as a confirmed gig. Intake and booking are separate phases: a request can be parsed, summarized, and queued without altering a calendar or publishing anything.
 
 Known contacts, unknown senders, incomplete details, possible date changes, and venue mismatches receive different handling. The system keeps a local record of what it saw and what still needs a person to decide.
 
-### Its own operational email
+### Band operational email
 
-Neon V2 has a dedicated email identity at **`neon_blonde@agentmail.to`**. From that inbox, the agent can reply to and coordinate with venue owners, private-event clients, rehearsal contacts, and local booking agents.
+Neon V2 uses **`neonblondevc@gmail.com`** through the private Gmail IMAP/SMTP configuration. From that account, the agent can read booking conversations and prepare approval-gated replies to venue owners, private-event clients, rehearsal contacts, and local booking agents.
 
 For approved conversations, Neon V2 can:
 
@@ -84,9 +84,9 @@ The system can produce plain-language schedules, upcoming-gig summaries, open da
 
 Neon V2 cross-references member availability, booked shows, travel constraints, and Freshground Sound's calendar. It can shortlist rehearsal dates and draft reservation communication while leaving the actual scheduling decision with the band.
 
-### Dashboard and health monitoring
+### Health monitoring
 
-The local dashboard consolidates operational status across booking intake, gig records, verification checks, post-gig queues, and agent health. Scheduled read-only health checks isolate failures so one broken data source does not silently corrupt another workflow.
+Read-only health checks compare the public calendar, Band Sheet, and website. Failures remain isolated so one broken data source does not silently corrupt another workflow.
 
 ## Gig Scout Agent: Finding the Next Opportunity
 
@@ -139,9 +139,9 @@ Once Mike approves a qualified prospect, the **Booking Pipeline** owns outreach 
 
 Gig Scout does not own confirmed gigs, payouts, Band Sheet publishing, or autonomous outreach. Its job is to find strong opportunities, explain why they are worth pursuing, and deliver clean research to the next agent.
 
-### Telegram, GroupMe, and agent handoffs
+### Telegram and agent handoffs
 
-Neon V2 brings band information into conversational tools without creating a second source of truth. Telegram Bot and Gig Copilot provide focused operational access, while GroupMe synchronization preserves current band communication context for authorized workflows.
+Neon V2 brings band information into conversational tools without creating a second source of truth. The Neon V2 Telegram bot and Gig-Day Co-Pilot provide focused operational access through their separate Hermes profiles.
 
 Codex, Claude, Gemini, and Hermes can operate the system through a shared compatibility and credential-parity model. They use the same operational rules, approval gates, and canonical credential sources.
 
@@ -200,7 +200,7 @@ When sources disagree or a required service fails, Neon V2 blocks the affected w
 ## System Architecture
 
 ```text
-Email / AgentMail / Telegram / GroupMe
+Gmail / Telegram
                     |
                     v
            Booking Intake Layer
@@ -229,9 +229,8 @@ Confirmed Gig Operations     Draft / Review Queue
 |---|---|
 | Band Sheet | Authoritative confirmed-gig publication |
 | Public Neon Blonde calendar | Member outs, dates, times, locations, and scheduling context |
-| Gmail / AgentMail | Booking intake and approved operational communication |
+| Gmail | Booking intake and approved operational communication |
 | Freshground calendar | Rehearsal-space availability |
-| GroupMe | Current band communication context |
 | Telegram | Conversational operations and Gig Copilot transport |
 | WordPress | Public show presentation verified against the Band Sheet |
 | Local CSVs and receipts | Payouts, queues, reconciliation, and audit history |

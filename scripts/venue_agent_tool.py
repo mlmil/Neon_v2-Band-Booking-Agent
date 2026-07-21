@@ -3,13 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 
-VENUES_ROOT = Path("/Volumes/VADER/Manifold/Neon_Blonde/Venues")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+VENUES_ROOT = Path(os.environ.get("NEON_DRIVE_ROOT", REPO_ROOT)).expanduser() / "Venues"
 TEST_VENUE_ALIASES = {"club babaloo", "club bobaloo"}
 TEST_VENUE_FOLDER = "_Test Venues"
 SANTA_BARBARA_AREA_CITIES = {"santa barbara", "goleta", "carpinteria", "montecito"}

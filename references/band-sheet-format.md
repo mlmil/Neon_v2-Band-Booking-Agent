@@ -1,10 +1,10 @@
 # The Band Sheet Format
 
-> ⚠️ **IMPORTANT**: This reference mirrors the authoritative format specified in SKILL.md. The SKILL.md is the source of truth — if anything conflicts, SKILL.md wins. The formatting documented here is the format Mike expects in GroupMe.
+> ⚠️ **IMPORTANT**: This reference mirrors the authoritative format specified in SKILL.md. The SKILL.md is the source of truth — if anything conflicts, SKILL.md wins.
 
 ## Overview
 
-The Band Sheet is a weekly scheduling summary posted to the Neon Blonde GroupMe. It has four sections in a fixed order:
+The Band Sheet is the band's published scheduling summary and may also be shared in the authorized Neon Blonde Telegram group. It has four sections in a fixed order:
 1. BOOKED GIGS
 2. MEMBERS OUT
 3. FULLY FREE WEEKENDS
@@ -107,6 +107,6 @@ Post a new Band Sheet:
 
 After generating the Band Sheet:
 1. Copy the entire formatted text
-2. Paste into Neon Blonde GroupMe
-3. Delete the previous Band Sheet from GroupMe notes to avoid confusion
+2. Publish through the approved Band Sheet workflow and, when requested, paste into the authorized Neon Blonde Telegram group
+3. Supersede the previous group copy to avoid confusion
 4. Confirm: "Band Sheet updated"

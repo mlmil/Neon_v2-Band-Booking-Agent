@@ -17,8 +17,9 @@ from scripts.post_gig_queue_sync import QueueGig, fetch_calendar_queue_gigs
 
 FIELDNAMES = ["VENUE", "CITY", "DATE", "PAYOUT", "TIP_JAR", "VENMO"]
 
-ADMIN_LEDGER = Path("/Volumes/VADER/Manifold/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/neon-blonde_Payouts 2026.csv")
-NUMBERS_SOURCE = Path("/Volumes/VADER/Manifold/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/📄-neon-blonde_Payouts 2026.numbers")
+DRIVE_ROOT = Path(os.environ.get("NEON_DRIVE_ROOT", REPO_ROOT)).expanduser()
+ADMIN_LEDGER = DRIVE_ROOT / "Administrative" / "PAYOUT TRACKING SPREADSHEET" / "neon-blonde_Payouts 2026.csv"
+NUMBERS_SOURCE = DRIVE_ROOT / "Administrative" / "PAYOUT TRACKING SPREADSHEET" / "Master Spreadsheet" / "neon-blonde_Payouts 2026.numbers"
 
 def normalize_money(value: object) -> str:
     if value is None:
@@ -37,6 +38,7 @@ def normalize_venue(value: str) -> str:
     v = value.lower().strip()
     v = re.sub(r"^gig at\s+", "", v)
     v = v.replace("'", "").replace("&", "and")
+    v = v.replace("_", " ")
     v = re.sub(r"[^\w\s]", "", v)
     v = re.sub(r"\s+", " ", v).strip()
 
@@ -51,10 +53,13 @@ def normalize_venue(value: str) -> str:
         "harrys nightclub": "harrys",
         "fox wine co topa topa": "fox wine",
         "fox wine company": "fox wine",
+        "fox wine co": "fox wine",
         "fig mountain sb": "fig mountain",
         "fig mt los olivos": "fig mountain",
         "santa barbara yacht club": "yacht club",
         "fess parkers": "fess parker",
+        "party": "private party",
+        "private party marty the kiwis house": "private party",
     }
     return aliases.get(v, v)
 
@@ -112,8 +117,8 @@ def export_numbers_rows(source: Path = NUMBERS_SOURCE) -> list[dict[str, object]
     script = f"""
     tell application "Numbers"
         set doc to open POSIX file "{source}"
-        set theSheet to sheet "Neon Blonde Venues" of doc
-        set theTable to table "Table 1" of theSheet
+        set theSheet to sheet 1 of doc
+        set theTable to table 1 of theSheet
 
         set rowCount to count of rows of theTable
 
@@ -124,15 +129,17 @@ def export_numbers_rows(source: Path = NUMBERS_SOURCE) -> list[dict[str, object]
             if v is not missing value then
                 set c to value of cell 2 of row i of theTable
                 set d to value of cell 3 of row i of theTable
-                set p to value of cell 5 of row i of theTable
-                set t to value of cell 6 of row i of theTable
+                set p to value of cell 4 of row i of theTable
+                set t to value of cell 5 of row i of theTable
+                set vm to value of cell 6 of row i of theTable
 
                 if c is missing value then set c to ""
                 if d is missing value then set d to ""
                 if p is missing value then set p to ""
                 if t is missing value then set t to ""
+                if vm is missing value then set vm to ""
 
-                set theData to theData & v & "|||" & c & "|||" & d & "|||" & p & "|||" & t & "|||ROW|||"
+                set theData to theData & v & "|||" & c & "|||" & d & "|||" & p & "|||" & t & "|||" & vm & "|||ROW|||"
             end if
         end repeat
 
@@ -171,7 +178,7 @@ def export_numbers_rows(source: Path = NUMBERS_SOURCE) -> list[dict[str, object]
                 "DATE": d_parsed,
                 "PAYOUT": parts[3].strip(),
                 "TIP_JAR": parts[4].strip(),
-                "VENMO": "",
+                "VENMO": parts[5].strip() if len(parts) >= 6 else "",
             })
     return rows
 
@@ -263,6 +270,28 @@ def merge_rows(
 
     return final_rows, {"created": created, "matched": matched, "total": len(final_rows) - 1}
 
+def merge_source_rows(existing_rows: list[dict[str, str]], source_rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    merged: dict[tuple[str, str], dict[str, str]] = {}
+    for row in existing_rows:
+        if row.get("VENUE", "") == "TOTAL":
+            continue
+        norm = normalize_row(row)
+        if norm["VENUE"] and norm["DATE"]:
+            merged[row_key(norm)] = norm
+
+    for row in source_rows:
+        norm = normalize_row(row)
+        if not norm["VENUE"] or not norm["DATE"]:
+            continue
+        key = row_key(norm)
+        current = merged.get(key, norm)
+        for field in FIELDNAMES:
+            if norm.get(field):
+                current[field] = norm[field]
+        merged[key] = current
+
+    return list(merged.values())
+
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
@@ -282,12 +311,20 @@ def sync_payout_csv(ledger_path: Path = ADMIN_LEDGER, numbers_source: Path = NUM
     if not ledger_path.parent.exists():
         return {"status": "blocked", "reason": f"Missing directory: {ledger_path.parent}"}
 
-    if not ledger_path.exists():
-        # First time migration
+    if numbers_source.exists():
         raw = export_numbers_rows(numbers_source)
-        existing = parse_numbers_rows(raw)
+        source_rows = parse_numbers_rows(raw)
+    else:
+        source_rows = []
+
+    if not ledger_path.exists():
+        if not numbers_source.exists():
+            return {"status": "blocked", "reason": f"Missing Numbers source: {numbers_source}"}
+        existing = source_rows
     else:
         existing = read_csv_rows(ledger_path)
+        if source_rows:
+            existing = merge_source_rows(existing, source_rows)
 
     try:
         gigs = fetch_calendar_queue_gigs()

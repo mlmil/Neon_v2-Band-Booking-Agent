@@ -10,15 +10,13 @@ Use this reference when work moves beyond ordinary calendar, Band Sheet, or rehe
 | Venue Agent | Confirmed venue profile, gig folder, reconciliation receipt, payout notes, venue follow-up | Prospecting unconfirmed venues |
 | Scout Agent | Prospect discovery, public-source research, lead scoring, weekly lead report | Confirmed gigs, payouts, Band Sheet publishing |
 | Booking Pipeline | Qualified leads, outreach drafts, follow-up status, lead owner, graduation to Venue Agent | Public scraping, final booking confirmation |
-| Local Model Pilot | Read-only venue folder digest | Calendar, Band Sheet, email, payout, or portal writes |
-| Dashboard | Operational overview and approved basic local writes | Sending, publishing, calendar changes, rate changes without confirmation |
 
 ## Source Of Truth Boundaries
 
 - Calendar event starts confirmed gig workflow.
 - Public Band Sheet/GitHub Pages URL is the public source of truth.
 - `RECONCILIATION.md` is the editable local audit note.
-- Private contacts stay in `/Volumes/VADER/Manifold/Neon_Blonde/Administrative/private-band-member-contacts.md`.
+- Private contacts stay under `$NEON_CONTACTS_ROOT` and never enter public or repository files.
 - Scout leads are prospects until promoted by Mike or confirmed through a calendar event.
 
 ## Booking Pipeline Decision
@@ -35,7 +33,7 @@ This prevents prospecting research from being mixed with active gig administrati
 
 Do not create a separate Booking Pipeline folder until there are qualified Scout leads. Until then, keep the pipeline as a status model and workflow lane.
 
-## Dashboard Write Rules
+## Local Write Rules
 
 Allowed local writes:
 
@@ -63,10 +61,10 @@ Protected actions needing explicit confirmation:
 - Respect `do-not-contact.csv`.
 - Keep raw prospect research separate from active venue folders.
 
-## Current Scout Agent Path
+## Scout Agent Data
 
 ```text
-/Volumes/VADER/Manifold/Neon_Blonde/Scout Agent/
+$NEON_DRIVE_ROOT/Scout Agent/
 ```
 
 Starter files:

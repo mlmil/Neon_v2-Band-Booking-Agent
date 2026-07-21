@@ -21,6 +21,9 @@ class TestPayoutCsvSync(unittest.TestCase):
         self.assertEqual(sync.normalize_venue("The Sewer "), "the sewer")
         self.assertEqual(sync.normalize_venue("Tony's Pizza"), "tonys pizza")
         self.assertEqual(sync.normalize_venue("Gig at M Special"), "ms special")
+        self.assertEqual(sync.normalize_venue("Fox Wine Co _Topa Topa"), "fox wine")
+        self.assertEqual(sync.normalize_venue("Party"), "private party")
+        self.assertEqual(sync.normalize_venue("Private Party @ Marty the Kiwi's House"), "private party")
 
     def test_row_key(self):
         self.assertEqual(

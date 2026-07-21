@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -13,10 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.agentmail_health_check import run_health_check as agentmail_check
 from scripts.bandsheet_verification_report import run_live_check as bandsheet_check
-from scripts.dashboard_server import get_post_gig_data
-from scripts.lm_studio_health_check import run_health_check as lm_studio_check
 from scripts.website_verification_report import run_live_check as website_check
 
 
@@ -44,47 +42,10 @@ def _redact_sensitive_fields(value):
     return value
 
 
-def dashboard_health_check(
-    *,
-    dashboard_dir: Path = REPO_ROOT / "dashboard",
-    queue_path: Path = REPO_ROOT / "data" / "post_gig" / "queue.csv",
-    payouts_path: Path = Path("/Volumes/VADER/Manifold/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/neon-blonde_Payouts 2026.csv"),
-) -> dict:
-    required_files = [
-        dashboard_dir / "index.html",
-        dashboard_dir / "components" / "app.jsx",
-        dashboard_dir / "components" / "panels.jsx",
-    ]
-    missing = [str(path) for path in required_files if not path.is_file()]
-    if missing:
-        return {
-            "status": "blocked",
-            "code": "DASHBOARD_FILES_MISSING",
-            "missing_files": missing,
-        }
-    if not queue_path.is_file():
-        return {
-            "status": "blocked",
-            "code": "POST_GIG_QUEUE_MISSING",
-            "queue_path": str(queue_path),
-        }
-
-    items = get_post_gig_data(queue_path, payouts_path)
-    return {
-        "status": "success",
-        "code": "DASHBOARD_DATA_OK",
-        "active_post_gig_items": len(items),
-        "payout_ledger_present": payouts_path.is_file(),
-    }
-
-
 def default_checks() -> dict[str, Check]:
     return {
-        "agentmail": agentmail_check,
         "bandsheet": bandsheet_check,
         "website": website_check,
-        "dashboard": dashboard_health_check,
-        "lm_studio": lm_studio_check,
     }
 
 

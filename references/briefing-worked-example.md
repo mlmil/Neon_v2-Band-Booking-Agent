@@ -340,7 +340,7 @@ Band Sheet lists these confirmed gigs (all from May 12):
 ### Sent Mail Check Results
 
 - **"Tony" search**: No sent emails found — no confirmation thread for the Tony's Pizza 5/30 date mismatch
-- **"Figueroa" search**: No sent emails — the Fig Mtn booking appears to have been handled outside email (possibly GroupMe or direct word)
+- **"Figueroa" search**: No sent emails — the Fig Mtn booking appears to have been handled outside email, possibly by phone or direct conversation.
 - **Freshground check (rehearsal)**: Sent mail confirmed the May 21 rehearsal request was sent on May 18. Mark's calendar now shows BOTH May 21 and May 26 — the May 26 date was likely booked separately or as a standing arrangement. No follow-up sent email needed.
 
 ### Compounding Signal Assessment
@@ -462,7 +462,7 @@ This suggests the Band Sheet's Tony's listings were bulk-entered from a proposal
 
 | Search Term | Result |
 |---|---|
-| `TONY` or `Tony's` | **Nothing found** — no sent mail confirms either the May 30 or Jun 3 date. This is a meaningful negative signal: the venue booking happened outside email (likely GroupMe or phone) or the dates were never confirmed. |
+| `TONY` or `Tony's` | **Nothing found** — no sent mail confirms either the May 30 or Jun 3 date. This is a meaningful negative signal: the venue booking happened outside email, likely by phone or direct conversation, or the dates were never confirmed. |
 | `Figueroa` | **Nothing found** — booking may have been handled outside email too. |
 | `Freshground` / Mark | May 18 rehearsal request found. Confirms Mark added May 21. No sent mail found for the May 26 rehearsal — that date was arranged separately. |
 | `Harry` | Found — May 19 "Updated Bandsheet Graphics" confirming venue change from Leashless. |

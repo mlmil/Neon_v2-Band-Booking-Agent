@@ -1,20 +1,63 @@
 import tempfile
 import unittest
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from scripts.monitor_inbox import (
     build_flagged_email,
     create_intake_receipts_for_flagged,
-    fetch_flagged_messages_agentmail,
     fetch_flagged_messages_imap,
+    fetch_gmail_thread,
     process_flagged_messages,
     redact_secrets,
-    get_body
+    get_body_from_message,
 )
 
 class MonitorInboxIMAPTests(unittest.TestCase):
+    def test_fetch_gmail_thread_preserves_more_than_forty_messages(self):
+        import email.message
+
+        payloads = {}
+        for index in range(45):
+            message = email.message.EmailMessage()
+            message["From"] = (
+                "Neon Blonde <neonblondevc@gmail.com>"
+                if index % 2
+                else "Jeff <jeff@example.com>"
+            )
+            message["To"] = "Jeff <jeff@example.com>"
+            message["Subject"] = "Wedding details"
+            message["Date"] = (
+                datetime(2026, 6, 1, 10, tzinfo=timezone(timedelta(hours=-7)))
+                + timedelta(days=index)
+            ).strftime("%a, %d %b %Y %H:%M:%S %z")
+            message["Message-ID"] = f"<message-{index}>"
+            message.set_content(f"Thread message {index}")
+            payloads[str(index + 1).encode()] = message.as_bytes()
+
+        class FakeMail:
+            def select(self, *_args, **_kwargs):
+                return "OK", []
+
+            def search(self, *_args):
+                return "OK", [b" ".join(payloads)]
+
+            def fetch(self, mid, _query):
+                return "OK", [(b"RFC822", payloads[mid])]
+
+        messages = fetch_gmail_thread(
+            FakeMail(),
+            thread_id="12345",
+            account_email="neonblondevc@gmail.com",
+        )
+
+        self.assertEqual(len(messages), 45)
+        self.assertEqual(messages[0]["direction"], "received")
+        self.assertEqual(messages[1]["direction"], "sent")
+        self.assertIn("Thread message 44", messages[-1]["text"])
+
     def test_build_flagged_email_detects_booking_keyword(self):
         flagged = build_flagged_email(
             sender="Phillip <phillip@example.com>",
@@ -87,7 +130,7 @@ class MonitorInboxIMAPTests(unittest.TestCase):
         msg = email.message.EmailMessage()
         msg.set_payload("Hello world")
         msg.set_type("text/plain")
-        body = get_body(msg)
+        body = get_body_from_message(msg)
         self.assertEqual(body.strip(), "Hello world")
 
     def test_process_flagged_notifies_then_marks_processed(self):
@@ -134,79 +177,6 @@ class MonitorInboxIMAPTests(unittest.TestCase):
 
             self.assertFalse(state.exists())
 
-    def test_fetch_flagged_messages_agentmail_reads_human_message_without_booking_keywords(self):
-        calls = []
-
-        def request(endpoint):
-            calls.append(endpoint)
-            if endpoint.endswith("/messages?limit=10"):
-                return 200, {
-                    "messages": [
-                        {
-                            "message_id": "<old>",
-                            "from": "Old Contact <old@example.com>",
-                            "subject": "Old booking",
-                            "timestamp": "2026-06-18T07:40:00.000Z",
-                            "preview": "Old booking request",
-                        },
-                        {
-                            "message_id": "<new>",
-                            "from": "Mike <mike@sparkai805.com>",
-                            "subject": "Malibu Party",
-                            "timestamp": "2026-06-18T07:58:15.000Z",
-                            "thread_id": "thread-new",
-                            "labels": ["received", "unread"],
-                            "preview": "Sounds good. Friday works for us.",
-                        },
-                    ]
-                }
-            if "/threads/" in endpoint:
-                return 200, {
-                    "thread_id": "thread-new",
-                    "messages": [
-                        {"from": "Neon <neon_blonde@agentmail.to>", "text": "Would Friday work?"},
-                        {"from": "Mike <mike@sparkai805.com>", "text": "Sounds good. Friday works for us."},
-                    ],
-                }
-            return 200, {"text": "Sounds good. Friday works for us."}
-
-        count, flagged = fetch_flagged_messages_agentmail(
-            request=request,
-            processed_ids={"<old>"},
-            max_results=10,
-        )
-
-        self.assertEqual(count, 1)
-        self.assertEqual(len(flagged), 1)
-        self.assertEqual(flagged[0]["message_id"], "<new>")
-        self.assertEqual(flagged[0]["thread_id"], "thread-new")
-        self.assertEqual(len(flagged[0]["thread_messages"]), 2)
-        self.assertIn("/v0/inboxes/neon_blonde@agentmail.to/messages?limit=10", calls[0])
-        self.assertTrue(any("/threads/thread-new" in endpoint for endpoint in calls[1:]))
-
-    def test_fetch_flagged_messages_agentmail_ignores_forwarding_confirmation(self):
-        def request(endpoint):
-            return 200, {
-                "messages": [
-                    {
-                        "message_id": "<confirm>",
-                        "from": "Gmail Team <forwarding-noreply@google.com>",
-                        "subject": "Gmail Forwarding Confirmation",
-                        "timestamp": "2026-06-18T07:55:35.000Z",
-                        "preview": "Confirm forwarding",
-                    }
-                ]
-            }
-
-        count, flagged = fetch_flagged_messages_agentmail(
-            request=request,
-            processed_ids=set(),
-            max_results=10,
-        )
-
-        self.assertEqual(count, 0)
-        self.assertEqual(flagged, [])
-
     @patch("scripts.monitor_inbox.imaplib.IMAP4_SSL")
     def test_fetch_flagged_messages_imap_skips_processed(self, mock_imap_cls):
         mock_mail = MagicMock()
@@ -219,30 +189,26 @@ class MonitorInboxIMAPTests(unittest.TestCase):
         # Message 1 is in processed_ids, so it should be skipped. Wait, UID vs Message-ID:
         # In IMAP we fetch the header to check Message-ID first.
 
-        # Mock fetch to return headers for both
         mock_mail.fetch.side_effect = [
-            ('OK', [(b'1 (BODY.PEEK[HEADER])', b'Message-ID: <msg-1>\r\nSubject: Old Gig\r\n\r\n')]),
-            # msg-1 skipped, so body is not fetched
-            ('OK', [(b'2 (BODY.PEEK[HEADER])', b'Message-ID: <msg-2>\r\nSubject: New Gig\r\nFrom: vip@rockstarentertainment.com\r\nDate: 2026-06-10\r\n\r\n')]),
-            # msg-2 is fetched fully
-            ('OK', [(b'2 (BODY.PEEK[])', b'Message-ID: <msg-2>\r\nSubject: New Gig\r\nFrom: vip@rockstarentertainment.com\r\nDate: 2026-06-10\r\nContent-Type: text/plain\r\n\r\nBook us for a gig')])
+            ('OK', [b'1 (UID 101)']),
+            ('OK', [b'2 (UID 202)']),
+            ('OK', [(b'2 (RFC822)', b'Message-ID: <msg-2>\r\nSubject: New Gig\r\nFrom: vip@rockstarentertainment.com\r\nDate: 2026-06-10\r\nContent-Type: text/plain\r\n\r\nBook us for a gig')])
         ]
 
-        processed_ids = {"<msg-1>"}
+        processed_ids = {"imap:neonblondevc@gmail.com:101"}
 
-        count, flagged = fetch_flagged_messages_imap(mock_mail, processed_ids, 10)
+        count, flagged = fetch_flagged_messages_imap(
+            config={"email": "neonblondevc@gmail.com", "app_password": "app-pass"},
+            processed_ids=processed_ids,
+            max_results=10,
+        )
 
         self.assertEqual(count, 1) # only 1 new message fetched fully
         self.assertEqual(len(flagged), 1)
-        self.assertEqual(flagged[0]["message_id"], "<msg-2>")
+        self.assertEqual(flagged[0]["message_id"], "imap:neonblondevc@gmail.com:202")
 
         # Ensure store() is never called
         self.assertFalse(mock_mail.store.called)
-
-        # Ensure only BODY.PEEK is used
-        for call in mock_mail.fetch.call_args_list:
-            args, _ = call
-            self.assertIn(b'PEEK', args[1].encode() if isinstance(args[1], str) else args[1])
 
 if __name__ == "__main__":
     unittest.main()

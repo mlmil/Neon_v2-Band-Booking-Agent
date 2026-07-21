@@ -5,10 +5,11 @@
 ## IMAP Connection
 
 ```python
-import imaplib, json
+import imaplib, json, os
 from pathlib import Path
 
-with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v2' / 'smtp_config.json')) as f:
+SMTP_CONFIG = Path(os.environ['NEON_SMTP_CONFIG']).expanduser()
+with open(SMTP_CONFIG) as f:
     cfg = json.load(f)
 
 mail = imaplib.IMAP4_SSL(cfg['imap_host'], cfg['imap_port'])
@@ -16,7 +17,7 @@ mail.login(cfg['email'], cfg['app_password'])
 mail.select("INBOX")
 ```
 
-Config file: `~/.hermes/skills/Neon_v2/smtp_config.json`
+Config file: `$NEON_SMTP_CONFIG`
 
 ## Sent Mail Search via IMAP
 
@@ -25,11 +26,12 @@ Gmail's IMAP requires specific quoting for the Sent Mail folder name.
 ### Working pattern
 
 ```python
-import imaplib, json, email
+import imaplib, json, email, os
 from email import policy
 from pathlib import Path
 
-with open(str(Path.home() / '.hermes' / 'skills' / 'Neon_v2' / 'smtp_config.json')) as f:
+SMTP_CONFIG = Path(os.environ['NEON_SMTP_CONFIG']).expanduser()
+with open(SMTP_CONFIG) as f:
     cfg = json.load(f)
 
 mail = imaplib.IMAP4_SSL(cfg['imap_host'], cfg['imap_port'])
