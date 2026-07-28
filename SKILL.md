@@ -29,6 +29,7 @@ Do not require Google Drive or Google Calendar API access. Google Drive content 
 |---|---|
 | `scripts/list_recent_emails.py` | Read the latest Gmail messages without changing read state |
 | `scripts/onboard_telegram_member.py` | Verify a band-group member and preapprove DMs for both bots |
+| `scripts/telegram_dm_test.py` | Send a private delivery test to approved members through both bots |
 | `scripts/google_contacts_tool.py` | Search and create Google Contacts through the official People API |
 | `scripts/monitor_inbox.py` | Monitor Gmail via IMAP, reconstruct conversation threads, and flag actionable messages |
 | `scripts/intake_email_parser.py` | Extract dates, venues, times from email text |
@@ -129,6 +130,8 @@ Use the official People API through `scripts/google_contacts_tool.py`; do not us
 When a person posts `@neonblondebot onboard me` inside the authorized group `-1004424634571`, use only the authenticated Telegram sender ID and sender name supplied by the gateway—not an ID typed in message text. Run `python3 scripts/onboard_telegram_member.py --user-id <sender_id> --user-name <sender_name>`. The script independently verifies current group membership and approves that identity for both Neon V2 and Neon Co_Pilot.
 
 After success, reply in the group with these one-time steps: open [Neon V2](https://t.me/neonblondebot?start=band) and [Gig Co-Pilot](https://t.me/GigCopilotNeon_Bot?start=band), then press Telegram's **Start** button in each chat. State that no pairing code is needed. Never onboard from a DM, forwarded identity, copied numeric ID, or a different group.
+
+For a private-DM delivery test, run `python3 scripts/telegram_dm_test.py`. It sends each approved member a separate test from Neon V2 and Gig Co-Pilot and asks them to reply `TEST RECEIVED`. Telegram API acceptance confirms that the bot submitted the message; the member's reply confirms that they received and reviewed it. Never send the test to the group chat.
 
 ## Member Out Tracking
 When Mike says "Mark [member] out [dates]", prepare an all-day event for manual entry on the Neon Blonde calendar. Never create or modify the event directly:
