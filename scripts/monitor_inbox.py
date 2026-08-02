@@ -10,6 +10,7 @@ import os
 import re
 import smtplib
 import sys
+import time
 from datetime import datetime, timezone
 from email.header import decode_header
 from email.mime.text import MIMEText
@@ -204,9 +205,25 @@ def fetch_flagged_messages_imap(
         print("  [Gmail] credentials missing", file=sys.stderr)
         return 0, []
 
+    # Gmail can briefly stall during IMAP connection/login.  Bound each
+    # attempt and retry transient socket/IMAP failures before giving up.
+    timeout_seconds = int(config.get("imap_timeout_seconds", 30))
+    retries = max(1, int(config.get("imap_retries", 3)))
+    last_error = None
+    for attempt in range(retries):
+        try:
+            mail = imaplib.IMAP4_SSL(imap_host, imap_port, timeout=timeout_seconds)
+            mail.login(email_addr, app_password)
+            break
+        except (OSError, imaplib.IMAP4.error) as e:
+            last_error = e
+            if attempt + 1 < retries:
+                time.sleep(min(2 ** attempt, 8))
+    else:
+        print(f"  [Gmail] IMAP connection failed after {retries} attempts: {last_error}", file=sys.stderr)
+        return 0, []
+
     try:
-        mail = imaplib.IMAP4_SSL(imap_host, imap_port)
-        mail.login(email_addr, app_password)
         mail.select("INBOX")
         status, data = mail.search(None, "UNSEEN")
         if status != "OK" or not data[0]:
@@ -277,6 +294,7 @@ def fetch_flagged_messages_imap(
         mail.logout()
     except Exception as e:
         print(f"  [Gmail] IMAP error: {e}", file=sys.stderr)
+        raise RuntimeError(f"Gmail IMAP unavailable: {e}") from e
 
     return new_count, flagged
 

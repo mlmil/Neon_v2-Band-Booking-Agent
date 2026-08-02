@@ -61,6 +61,8 @@ This no-code membership-verification flow is the required production behavior. D
 
 Use `America/Los_Angeles` for scheduling and daylight-saving conversion.
 
+The standing Neon Blonde arrival rule is: **every member must arrive 60 minutes before the published show start**. Apply this band-wide unless Mike explicitly overrides the arrival requirement for a specific gig. Always display show time and required arrival time as separate labeled values.
+
 For each member:
 
 ```text
@@ -131,6 +133,8 @@ After the morning check-in, refresh weather and traffic at a configurable interv
 - Every 60 minutes until three hours before the earliest leave-by time
 - Every 30 minutes during the final three hours
 - Immediately when a member reports a delay, changes origin, or shares a new ETA
+
+Out-of-town member traffic monitoring is safety-critical. Dave Roman (normally departing Simi Valley) and Curtis Clyde (normally departing Santa Barbara) receive priority route scans and proactive private traffic updates. Immediately alert them when verified traffic materially worsens or moves their safe departure earlier; do not wait for the next routine interval. Mike, Alfred, and Kyle normally depart Ventura and still receive critical incident or materially earlier-departure alerts. Never automatically move a previously issued departure time later.
 
 Send an update only when information is materially different. Avoid repetitive messages.
 
