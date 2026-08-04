@@ -28,6 +28,7 @@ Do not require Google Drive or Google Calendar API access. Google Drive content 
 | Script | Purpose |
 |---|---|
 | `scripts/list_recent_emails.py` | Read the latest Gmail messages without changing read state |
+| `scripts/search_gmail.py` | Search Gmail messages read-only by sender, subject, date, or body text |
 | `scripts/onboard_telegram_member.py` | Verify a band-group member and preapprove DMs for both bots |
 | `scripts/telegram_dm_test.py` | Send a private delivery test to approved members through both bots |
 | `scripts/google_contacts_tool.py` | Search and create Google Contacts through the official People API |
@@ -101,6 +102,8 @@ Critical: The Band Sheet website's "Weekend Days Open" only shows days without g
 **Neon_v2 Gmail intake uses the shared Gmail IMAP/SMTP config and its `app_password` field. Do not substitute Google Workspace OAuth, `gws`, or Himalaya for this workflow.**
 
 For requests such as “show/read/summarize the last five emails,” run `python3 scripts/list_recent_emails.py --limit 5` from this skill directory. Change only the numeric limit requested. Do not claim email is unconfigured until this command has been attempted and its actual error reported.
+
+For any Telegram request to find, search, or access Gmail, the agent must run the read-only helper through Terminal before answering. Use `python3 scripts/search_gmail.py "<search terms>" --limit 10` for a search, or `python3 scripts/list_recent_emails.py --limit 5` for the latest messages. Do not say that Gmail is inaccessible merely because no dedicated Gmail tool is listed. If the helper fails, report the exact non-secret error and label the Gmail coverage gap.
 
 Credential file: `$NEON_SMTP_CONFIG`
 
