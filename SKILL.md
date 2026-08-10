@@ -38,6 +38,7 @@ Do not require Google Drive or Google Calendar API access. Google Drive content 
 | `scripts/intake_receipt_tool.py` | Write intake receipt JSON files |
 | `scripts/post_gig_payout_tool.py` | Track post-gig payouts |
 | `scripts/payout_csv_sync.py` | Sync payout CSV data |
+| `/Users/cthulhu/Desktop/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/Neon Blonde 2026 PAYOUTS .numbers` | User-facing payout workbook; update after payout details are collected and verify the saved row |
 | `scripts/find_rehearsal_dates.py` | Find available rehearsal dates |
 | `scripts/create_venue_package.sh` | Create venue folder + notes + GIMP template |
 | `scripts/contract_flow.py` | Classify contract evidence for briefings |
@@ -97,6 +98,28 @@ Critical: The Band Sheet website's "Weekend Days Open" only shows days without g
 - Multi-member conflicts affect lineup
 - Travel/setup time between conflicting events counts as conflict
 - Overnight events past midnight stay on the start date
+
+## Post-Gig Payout Closeout
+
+After every completed gig, Neon V2 must send Mike a private Telegram message to collect the payout details. Do not wait for Mike to remember to ask. The closeout request should identify the exact gig date and venue and ask for:
+
+- Base pay received
+- Cash tip-jar amount
+- Electronic tip amount, including Venmo when applicable
+- Payment method(s)
+- Who received the payment
+- Whether a check was received and, if not, whether it remains outstanding
+- Any owner/member tip or other payment detail that should be preserved in notes
+
+Do not record a payout until the gig identity and amounts are clear. If Mike says an amount was added, increased, or corrected, clarify whether it is an additional amount or a replacement before writing. Keep base pay, tip-jar cash, owner/member tips, and Venmo/electronic payments distinct in the explanation and notes.
+
+Record the verified payout in the user-facing Numbers workbook:
+
+`/Users/cthulhu/Desktop/Neon_Blonde/Administrative/PAYOUT TRACKING SPREADSHEET/Neon Blonde 2026 PAYOUTS .numbers`
+
+Use the existing venue/date row when one exists; update it rather than creating a duplicate. After writing, reread or otherwise verify the exact row and report the component breakdown and total to Mike. A local CSV or JSON receipt alone does not satisfy this workflow—the Numbers workbook must be updated or any inability to edit it must be reported clearly as a blocker. Never claim the workbook was updated without verification.
+
+The post-gig reminder/checkpoint may use `scripts/post_gig_reminder.py`, and the structured ledger helper may be used for validation and receipts, but the Numbers workbook remains the final user-facing payout record.
 
 ## Email Intake (Gmail IMAP)
 **Neon_v2 Gmail intake uses the shared Gmail IMAP/SMTP config and its `app_password` field. Do not substitute Google Workspace OAuth, `gws`, or Himalaya for this workflow.**
