@@ -14,6 +14,19 @@ Google Drive content is mirrored locally at NEON_DRIVE_ROOT.
 Mike approves source-of-truth and external changes.
 ```
 
+## Email Monitoring Scripts
+
+Neon V2 has two Gmail monitoring scripts with distinct scopes:
+
+| Script | Trigger | Purpose | State File |
+|---|---|---|---|
+| `scripts/email_watch_cron.py` | Cron (hourly) | Lightweight poll: detect new messages, track pending replies, flag overdue. Outputs JSON for agent triage. | `data/intake/email_watch_state.json` |
+| `scripts/monitor_inbox.py` | On-demand / manual | Heavy processing: full thread context, intake receipts, Telegram notifications, `--mark-seen` archive. | `data/intake/processed-gmail-imap.json` |
+
+**Do not merge these scripts.** The cron poller is intentionally minimal — it must not create receipts, send notifications, or mutate state beyond its lightweight tracking. The on-demand monitor is the full pipeline for when Mike or an agent explicitly runs it.
+
+Both scripts use `BODY.PEEK[]` for IMAP fetches to avoid marking messages as read.
+
 ## Deterministic Scripts
 
 | Script | Purpose |

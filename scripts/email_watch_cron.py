@@ -6,11 +6,13 @@ Stays in the loop on every exchange: incoming, outgoing, replies, follow-ups.
 Outputs JSON for the agent to summarize concisely.
 """
 
+import argparse
 import imaplib
 import email
 import json
 import os
 import re
+import sys
 from email.header import decode_header
 from datetime import datetime, timezone
 
@@ -108,6 +110,10 @@ def is_from_mike(from_addr):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Neon Blonde email watch cron — lightweight poll for new messages and overdue replies.")
+    parser.add_argument("--dry-run", action="store_true", help="Fetch and process but do not save state")
+    args = parser.parse_args()
+
     with open(SMTP_CONFIG) as f:
         cfg = json.load(f)
 
@@ -129,6 +135,7 @@ def main():
     state = load_state()
     seen = set(state.get('seen_message_ids', []))
     pending = state.get('pending_replies', {})
+    overdue_alerted = state.get('overdue_alerted', {})
 
     new_emails = []
     mike_replies = []
@@ -140,7 +147,9 @@ def main():
         if mid_str in seen:
             continue
 
-        status, msg_data = mail.fetch(mid, '(RFC822)')
+        # Use BODY.PEEK[] to avoid marking messages as \Seen on the server.
+        # This keeps the read-state intact for Mike's own email clients.
+        status, msg_data = mail.fetch(mid, '(BODY.PEEK[])')
         for resp in msg_data:
             if isinstance(resp, tuple):
                 msg = email.message_from_bytes(resp[1])
@@ -204,6 +213,7 @@ def main():
                     mike_replies.append(email_info)
                     # Remove from pending if it was there
                     pending.pop(base_subj, None)
+                    overdue_alerted.pop(base_subj, None)
                 else:
                     new_emails.append(email_info)
                     if not replied:
@@ -216,11 +226,15 @@ def main():
                         }
                     else:
                         pending.pop(base_subj, None)
+                        overdue_alerted.pop(base_subj, None)
 
                 seen.add(mid_str)
 
     # Check pending replies for overdue (24h+)
+    # Only alert on overdue items that haven't been alerted recently,
+    # to avoid spamming Mike every poll cycle with the same old messages.
     now = datetime.now(timezone.utc)
+    OVERDUE_ALERT_COOLDOWN_HOURS = 24  # re-alert at most once per day per thread
     overdue = []
     for subj, info in pending.items():
         try:
@@ -228,19 +242,38 @@ def main():
             age_hours = (now - first_seen).total_seconds() / 3600
         except Exception:
             age_hours = 0
-        if age_hours > 24:
+        if age_hours <= 24:
+            continue
+        # Check if we've already alerted on this thread recently
+        last_alert_str = overdue_alerted.get(subj)
+        should_alert = True
+        if last_alert_str:
+            try:
+                last_alert = datetime.fromisoformat(last_alert_str)
+                hours_since_alert = (now - last_alert).total_seconds() / 3600
+                if hours_since_alert < OVERDUE_ALERT_COOLDOWN_HOURS:
+                    should_alert = False
+            except Exception:
+                pass  # if timestamp is corrupt, treat as not alerted
+        if should_alert:
             overdue.append({
                 'from': info['from'],
                 'subject': info['subject'],
                 'date': info['date'],
                 'age_hours': round(age_hours, 1),
             })
+            overdue_alerted[subj] = now.isoformat()
+
+    state['overdue_alerted'] = overdue_alerted
 
     seen_list = list(seen)[-100:]
     state['seen_message_ids'] = seen_list
     state['pending_replies'] = pending
     state['last_check'] = datetime.now(timezone.utc).isoformat()
-    save_state(state)
+    if not args.dry_run:
+        save_state(state)
+    else:
+        print("[DRY RUN] State not saved.", file=sys.stderr)
     mail.logout()
 
     output = {

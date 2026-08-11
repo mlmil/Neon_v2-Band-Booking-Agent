@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-DEFAULT_DB = Path("/Users/studio_hub/Desktop/Neon Blonde Skill/neon-blonde-booking/.communication_db.json")
+DEFAULT_DB = Path(__file__).resolve().parents[1] / "data" / "communications" / "sent-email-log.json"
 
 
 def load_db(path: Path):
